@@ -1,0 +1,16 @@
+span.massge-text {
+    width: 100%;
+    text-align: center;
+    color: red;
+    font-style: italic;
+    padding-left: 100px;
+    font-weight: bold;
+}
+div#sua1 {
+    margin-top: 160px;
+}
+.col-lg-6 {
+
+    background-color: wheat;
+    border-radius: 10px;
+}

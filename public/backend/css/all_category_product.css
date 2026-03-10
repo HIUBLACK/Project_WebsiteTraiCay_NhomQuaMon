@@ -1,0 +1,22 @@
+/* màu cột */
+tr.mau-xam {
+    background-color: rgb(245, 244, 244);
+}
+/* màu chữ message */
+span.message_category {
+    color: green;
+    font-style: italic;
+}
+div#btn-them-san-pham {
+    margin-bottom: 0px;
+    width: 200px;
+    float: right;
+}
+.card-header.py-3 {
+    padding: .50rem 1.25rem;
+
+}
+div#massage-danh-muc {
+    width: 250px;
+    float: left;
+}

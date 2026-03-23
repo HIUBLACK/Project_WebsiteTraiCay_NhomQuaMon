@@ -108,7 +108,7 @@ class CartService
     }
 
     /**
-     * Kiểm tra giỏ hàng có trống không
+     * Kiểm tra giỏ hàng có trống khôn
      */
     public function isCartEmpty(int $userId): bool
     {

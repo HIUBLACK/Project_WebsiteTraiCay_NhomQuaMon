@@ -57,9 +57,9 @@
                                         <td>
                                             @if($oder->oder_status == 0)
 
-                                                <a href="{{ URL::to('/unactivate-oder-product/'.$oder->oder_id)}}" style="text-decoration: none">Chưa duyệt</a>
+                                                <a href="{{ URL::to('/duyet-oder/'.$oder->oder_id)}}" style="text-decoration: none">Chưa duyệt</a>
                                             @else
-                                                <a href="{{ URL::to('/activate-oder-product/'.$oder->oder_id)}}" style="text-decoration: none">Đã duyệt</a>
+                                                <a href="{{ URL::to('/huy-duyet-oder/'.$oder->oder_id)}}" style="text-decoration: none">Đã duyệt</a>
                                             @endif
                                             </td>
                                         <td>

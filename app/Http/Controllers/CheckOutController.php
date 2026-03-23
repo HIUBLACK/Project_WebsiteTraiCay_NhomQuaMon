@@ -72,12 +72,14 @@ class CheckOutController extends Controller
         $orderIds = $request->input('oder_ids');
 
      // Đây là mảng các order_id
-
     foreach ($orderIds as $id) {
-        // xử lý từng đơn hàng, ví dụ cập nhật trạng thái
         DB::table('tbl_oder')
             ->where('oder_id', $id)
-            ->update(['oder_status' => 0]); // ví dụ: trạng thái = đã thanh toán
+            ->update([
+                'oder_status' => 0,
+                'created_at'  => now(),  // thêm dòng này
+
+            ]);
     }
 
 

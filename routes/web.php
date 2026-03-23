@@ -81,14 +81,14 @@ Route::get('/user-dang-xuat', 'App\Http\Controllers\HomeController@user_logout')
 // Route::get('/thong-bao', 'App\Http\Controllers\HomeController@thong_bao');
 
 
-Route::get('/all-oder', 'App\Http\Controllers\OderController@all_oder');
-Route::get('/test', 'App\Http\Controllers\OderController@test');
-// Route::get('/show-name', 'App\Http\Controllers\HomeController@show_name');
-Route::get('/lich-su-dat-hang', 'App\Http\Controllers\OderController@detail_oder');
+//Route::get('/all-oder', 'App\Http\Controllers\OderController@all_oder');
+//Route::get('/test', 'App\Http\Controllers\OderController@test');
+  // Route::get('/show-name', 'App\Http\Controllers\HomeController@show_name');
+//Route::get('/lich-su-dat-hang', 'App\Http\Controllers\OderController@detail_oder');
 
 //ADMIN ẨN HIỆN DANH MỤC(CATEGORY PRODUCT)
-Route::get('/unactivate-oder-product/{oder_id}', 'App\Http\Controllers\OderController@unactivate_category_product');
-Route::get('/activate-oder-product/{oder_id}', 'App\Http\Controllers\OderController@activate_category_product');
+//Route::get('/unactivate-oder-product/{oder_id}', 'App\Http\Controllers\OderController@unactivate_category_product');
+//Route::get('/activate-oder-product/{oder_id}', 'App\Http\Controllers\OderController@activate_category_product');
 
 
 
@@ -111,4 +111,20 @@ Route::get('/delete-product/{product_id}', 'App\Http\Controllers\ProductControll
 Route::get('/edit-product/{product_id}', 'App\Http\Controllers\ProductController@edit_product');
 Route::POST('/update-product/{product_id}', 'App\Http\Controllers\ProductController@update_product');
 
-Route::get('/delete-oder/{oder_id}', 'App\Http\Controllers\OderController@delete_oder');
+//Route::get('/delete-oder/{oder_id}', 'App\Http\Controllers\OderController@delete_oder');
+
+
+
+Route::get('/all-oder',                         'App\Http\Controllers\OderController@all_oder');
+Route::get('/chi-tiet-oder/{oder_id}',          'App\Http\Controllers\OderController@show_oder');
+Route::get('/them-oder',                         'App\Http\Controllers\OderController@add_oder');
+Route::post('/save-oder',                        'App\Http\Controllers\OderController@save_oder');
+Route::get('/edit-oder/{oder_id}',               'App\Http\Controllers\OderController@edit_oder');
+Route::post('/update-oder/{oder_id}',            'App\Http\Controllers\OderController@update_oder');
+Route::get('/duyet-oder/{oder_id}',              'App\Http\Controllers\OderController@duyet_oder');
+Route::get('/huy-duyet-oder/{oder_id}',          'App\Http\Controllers\OderController@huy_duyet_oder');
+Route::get('/delete-oder/{oder_id}',             'App\Http\Controllers\OderController@delete_oder');
+
+// ---- USER: Lịch sử & hủy đơn ----
+Route::get('/lich-su-dat-hang',                  'App\Http\Controllers\OderController@detail_oder');
+Route::get('/huy-don-hang/{oder_id}',            'App\Http\Controllers\OderController@user_cancel_oder');

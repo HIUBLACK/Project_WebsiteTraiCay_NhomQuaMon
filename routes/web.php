@@ -40,7 +40,7 @@ Route::get('/admin-trang-chu', 'App\Http\Controllers\AdminController@admin_dashb
 Route::get('/admin-dang-ky', 'App\Http\Controllers\AdminController@admin_register');
 
 //-----------------------------------ADMIN---------------------------------------------
-//ADMIN DANH SÁCH TÀI KHOẢN
+//ADMIN DANH SÁCH TÀI KHOẢ
 
 Route::get('/all-taikhoan', 'App\Http\Controllers\AccoutnController@all_accoutn');
 //ADMIN DANH MỤC

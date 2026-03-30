@@ -107,7 +107,7 @@ Route::get('/san-pham-theo-danh-muc/{category_id}', 'App\Http\Controllers\Produc
 //xóa sản phẩm
 Route::get('/delete-product/{product_id}', 'App\Http\Controllers\ProductController@delete_product');
 
-//ADMIN SỬA sản phẩ
+//ADMIN SỬA sản ph
 Route::get('/edit-product/{product_id}', 'App\Http\Controllers\ProductController@edit_product');
 Route::POST('/update-product/{product_id}', 'App\Http\Controllers\ProductController@update_product');
 

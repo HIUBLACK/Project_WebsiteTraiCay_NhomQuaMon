@@ -9,83 +9,215 @@ use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Auth;
 use Termwind\Components\Raw;
+use Carbon\Carbon;
 class CheckOutController extends Controller
 {
     public function thanh_toan(){
-         if (!Auth::check()) {
-            return redirect('/dang-nhap-dang-ky')->with('error', 'Bạn cần đăng nhập để đặt hàng');
-        }
-        $id = Auth::id();
-        $all_oder = DB::table('tbl_oder')
-        ->join('tbl_product', 'tbl_oder.oder_id_product', '=', 'tbl_product.product_id')
-        ->where('tbl_oder.oder_status', 2)
-        ->where('tbl_oder.oder_id_user', $id)
-        ->orderByDesc('tbl_oder.oder_id')
-        ->select(
-            'tbl_oder.*',
-            'tbl_product.product_image',
-            'tbl_product.product_name',
-            'tbl_product.product_price',
-            DB::raw('(tbl_product.product_price * tbl_oder.oder_soluong) as thanh_tien')
-        )
-        ->get();
-            if($all_oder->count()!=0){
-                 $total = $all_oder->sum('thanh_tien');
-                $sum_sp =$all_oder->sum('oder_soluong');
 
-
-    // Truyền ra view
-    $manager_oder = view('pages.checkout')
-        ->with('all_oder', $all_oder)
-        ->with('total', $total)
-        ->with('sum_sp', $sum_sp);
-
-
-    return view("user_layout")->with('pages.checkout', $manager_oder);
-            }else{
-                return redirect("san-pham")->with('message', '!Giỏ hàng trống, vui lòng thêm sản phẩm vào giỏ');
-            }
-    // Tính tổng tiền tất cả đơn hàng
-
-
+    if (!Auth::check()) {
+        return redirect('/dang-nhap-dang-ky');
     }
-    public function xu_ly_thanh_toan(Request $request){
-    //     $id = Auth::id(); // lấy id người dùng đang đăng nhập
 
-    // $all_oder = DB::table('tbl_oder')->get();
-    //     ->join('tbl_product', 'tbl_oder.oder_id_product', '=', 'tbl_product.product_id')
-    //     ->where('tbl_oder.oder_id_user', '=', $id)
-    //     ->where('tbl_oder.oder_status', '=', 2)
-    //     ->select('tbl_oder.*', 'tbl_product.product_name', 'tbl_product.product_image', 'tbl_product.product_price',
-    //              DB::raw('tbl_product.product_price * tbl_oder.oder_soluong as thanh_tien'))
+    $id = Auth::id();
 
+    $all_oder = DB::table('tbl_oder')
+    ->join('tbl_product','tbl_oder.oder_id_product','=','tbl_product.product_id')
+    ->where('tbl_oder.oder_status', 2)
+    ->where('tbl_oder.oder_id_user', $id)
+    ->select(
+        'tbl_oder.*',
+        'tbl_product.product_name',
+        'tbl_product.product_price',
+        'tbl_product.product_image',
+        DB::raw('(tbl_product.product_price * tbl_oder.oder_soluong) as thanh_tien')
+    )
+    ->get();
 
-    // $total = $all_oder->sum('thanh_tien');
+    if ($all_oder->isEmpty()) {
+        return redirect('/gio-hang')->with('error', 'Giỏ hàng trống');
+    }
 
-        //  $manager_oder = view('pages.oder_history')
-        // ->with('all_oder', $all_oder);
-        // ->with('total', $total);
+    $total = $all_oder->sum(function($item){
+        return $item->product_price * $item->oder_soluong;
+    });
 
+    // 🔥 COUPON
+    $discount = 0;
 
+    if (Session::has('coupon')) {
+        $coupon = Session::get('coupon');
 
+        foreach ($all_oder as $item) {
 
-        $orderIds = $request->input('oder_ids');
+            $apply = true;
 
-     // Đây là mảng các order_id
-    foreach ($orderIds as $id) {
+            if ($coupon->coupon_scope == 2) {
+                $check = DB::table('tbl_coupon_product')
+                    ->where('coupon_id', $coupon->coupon_id)
+                    ->where('product_id', $item->oder_id_product)
+                    ->first();
+
+                if (!$check) $apply = false;
+            }
+
+            if ($apply) {
+                if ($coupon->coupon_type == 1) {
+                    $discount += ($item->product_price * $item->oder_soluong * $coupon->coupon_value)/100;
+                } else {
+                    $discount = $coupon->coupon_value;
+                }
+            }
+        }
+    }
+
+    $total_after = max(0, $total - $discount);
+
+    return view('pages.checkout', compact(
+        'all_oder','total','discount','total_after'
+    ));
+}
+   public function xu_ly_thanh_toan(Request $request){
+
+    // ✅ validate
+    $request->validate([
+        'name' => 'required|min:3',
+        'address' => 'required|min:5',
+        'phone' => 'required'
+    ]);
+
+    $user_id = Auth::id();
+
+    $cart = DB::table('tbl_oder')
+        ->where('oder_id_user',$user_id)
+        ->where('oder_status',2)
+        ->get();
+
+    if ($cart->isEmpty()) {
+        return redirect('/gio-hang')->with('error','Giỏ hàng trống');
+    }
+
+    // ✅ tính tổng
+    $total = 0;
+    foreach ($cart as $item){
+        $price = DB::table('tbl_product')
+            ->where('product_id',$item->oder_id_product)
+            ->value('product_price');
+
+        $total += $price * $item->oder_soluong;
+    }
+
+    // ✅ COUPON
+    $discount = 0;
+
+    if (Session::has('coupon')) {
+
+        $coupon = Session::get('coupon');
+
+        foreach ($cart as $item) {
+
+            $price = DB::table('tbl_product')
+                ->where('product_id',$item->oder_id_product)
+                ->value('product_price');
+
+            $apply = true;
+
+            if ($coupon->coupon_scope == 2) {
+                $check = DB::table('tbl_coupon_product')
+                    ->where('coupon_id',$coupon->coupon_id)
+                    ->where('product_id',$item->oder_id_product)
+                    ->first();
+
+                if (!$check) $apply = false;
+            }
+
+            if ($apply) {
+                if ($coupon->coupon_type == 1) {
+                    $discount += ($price * $item->oder_soluong * $coupon->coupon_value)/100;
+                } else {
+                    $discount = $coupon->coupon_value;
+                }
+            }
+        }
+    }
+
+    $total_after = max(0, $total - $discount);
+
+    // ✅ LƯU ĐƠN CHÍNH
+    $order_main_id = DB::table('tbl_order_main')->insertGetId([
+        'user_id' => $user_id,
+        'name' => $request->name,
+        'address' => $request->address,
+        'phone' => $request->phone,
+        'total' => $total_after,
+        'payment_method' => $request->payment_method,
+        'created_at' => now()
+    ]);
+
+    // ✅ GẮN ORDER_ID + UPDATE STATUS
+    foreach ($cart as $item){
         DB::table('tbl_oder')
-            ->where('oder_id', $id)
+            ->where('oder_id',$item->oder_id)
             ->update([
-                'oder_status' => 0,
-                'created_at'  => now(),  // thêm dòng này
-
+                'oder_status'=>1,
+                'order_id'=>$order_main_id
             ]);
     }
 
+    // ✅ UPDATE COUPON
+    if (Session::has('coupon')) {
 
-    //  return view("user_layout")->with('pages.oder_history', $manager_oder);
-     return redirect("lich-su-dat-hang")->with('message', 'Đặt hàng thành công!');
+        $coupon = Session::get('coupon');
 
+        DB::table('tbl_coupon')
+            ->where('coupon_id',$coupon->coupon_id)
+            ->increment('coupon_used_count');
+
+        DB::table('tbl_coupon_usage')->insert([
+            'coupon_id'=>$coupon->coupon_id,
+            'user_id'=>$user_id
+        ]);
+
+        Session::forget('coupon');
+    }
+
+    return redirect('/')->with('message','Đặt hàng thành công');
+}
+    //giảm giá
+
+
+    public function apply_coupon(Request $request)
+    {
+        $coupon = DB::table('tbl_coupon')
+            ->where('coupon_code', $request->coupon_code)
+            ->where('coupon_condition', 1)
+            ->first();
+
+        if (!$coupon) return back()->with('error','Sai mã');
+
+        if ($coupon->coupon_expiry && Carbon::now()->gt($coupon->coupon_expiry))
+            return back()->with('error','Hết hạn');
+
+        if ($coupon->coupon_usage_limit > 0 &&
+            $coupon->coupon_used_count >= $coupon->coupon_usage_limit)
+            return back()->with('error','Hết lượt');
+
+        $user_id = Session::get('user_id');
+
+        $used = DB::table('tbl_coupon_usage')
+            ->where('coupon_id',$coupon->coupon_id)
+            ->where('user_id',$user_id)
+            ->first();
+
+        if ($used) return back()->with('error','Đã dùng');
+
+        Session::put('coupon',$coupon);
+
+        return back()->with('message','OK');
+    }
+
+    public function remove_coupon(){
+        Session::forget('coupon');
+        return back();
     }
 
 

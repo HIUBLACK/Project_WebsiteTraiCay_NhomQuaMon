@@ -32,6 +32,7 @@
     <link href="{{asset('fontend/css/style.css')}}" rel="stylesheet">
     <link href="{{asset('fontend/css/styleAccoutn.css')}}" rel="stylesheet">
 
+
 </head>
 <style>
     p#gh_chu {
@@ -209,7 +210,8 @@
     @yield('checkout')
     @yield('contact')
     @yield('detail_oder')
-    @yield('thong_bao')
+    @yield('order_detail')
+
 
 
 

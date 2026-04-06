@@ -128,3 +128,17 @@ Route::get('/delete-oder/{oder_id}',             'App\Http\Controllers\OderContr
 // ---- USER: Lịch sử & hủy đơn ----
 Route::get('/lich-su-dat-hang',                  'App\Http\Controllers\OderController@detail_oder');
 Route::get('/huy-don-hang/{oder_id}',            'App\Http\Controllers\OderController@user_cancel_oder');
+
+
+
+//--Khuyến mãi
+// ADMIN
+Route::get('/add-coupon', 'App\Http\Controllers\CouponController@add_coupon');
+Route::post('/save-coupon', 'App\Http\Controllers\CouponController@save_coupon');
+Route::get('/all-coupon', 'App\Http\Controllers\CouponController@all_coupon');
+Route::get('/delete-coupon/{id}', 'App\Http\Controllers\CouponController@delete_coupon');
+
+// USER
+Route::post('/apply-coupon', 'App\Http\Controllers\CheckOutController@apply_coupon');
+Route::get('/remove-coupon', 'App\Http\Controllers\CheckOutController@remove_coupon');
+Route::get('/chi-tiet-don/{id}','App\Http\Controllers\OderController@chi_tiet_don');

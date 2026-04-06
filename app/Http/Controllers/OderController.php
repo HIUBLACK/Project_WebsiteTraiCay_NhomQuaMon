@@ -310,32 +310,31 @@ class OderController extends Controller
             return redirect('/dang-nhap-dang-ky')->with('error', 'Bạn cần đăng nhập để xem đơn hàng');
         }
 
-        $id = Auth::id();
+        $user_id = Auth::id();
 
-        $all_oder = DB::table('tbl_oder')
-            ->join('tbl_product', 'tbl_oder.oder_id_product', '=', 'tbl_product.product_id')
-            ->where('tbl_oder.oder_status', '!=', 2)
-            ->where('tbl_oder.oder_id_user', $id)
-            ->orderByDesc('tbl_oder.oder_id')
-            ->select(
-                'tbl_oder.*',
-                'tbl_product.product_image',
-                'tbl_product.product_name',
-                'tbl_product.product_price',
-                DB::raw('(tbl_product.product_price * tbl_oder.oder_soluong) as thanh_tien')
-            )
-            ->get();
+    $orders = DB::table('tbl_order_main')
+        ->where('user_id',$user_id)
+        ->orderByDesc('order_id')
+        ->get();
 
-        $total   = $all_oder->sum('thanh_tien');
-        $sum_sp  = $all_oder->sum('oder_soluong');
-
-        $manager_oder = view('pages.oder_history')
-            ->with('all_oder', $all_oder)
-            ->with('total', $total)
-            ->with('sum_sp', $sum_sp);
-
-        return view('user_layout')->with('pages.oder_history', $manager_oder);
+    return view('pages.oder_history', compact('orders'));
     }
+
+    public function chi_tiet_don($id){
+
+    $details = DB::table('tbl_oder')
+        ->join('tbl_product','tbl_oder.oder_id_product','=','tbl_product.product_id')
+        ->where('order_id',$id)
+        ->select(
+            'tbl_product.product_name',
+            'tbl_product.product_price',
+            'tbl_oder.oder_soluong',
+            DB::raw('(tbl_product.product_price * tbl_oder.oder_soluong) as thanh_tien')
+        )
+        ->get();
+
+    return view('pages.order_detail', compact('details'));
+}
 
     // =========================================================
     // USER — Hủy đơn hàng (chỉ được hủy khi status = 0)

@@ -83,8 +83,31 @@
             </table>
         </div>
         <div class="mt-5">
-            <input type="text" class="border-0 border-bottom rounded me-5 py-3 mb-4" placeholder="..nhập mã giảm giá..">
-            <button class="btn border-secondary rounded-pill px-4 py-3 text-primary" type="button">Mã Giảm Giá</button>
+         <form action="{{URL::to('/apply-coupon')}}" method="POST">
+            {{ csrf_field() }}
+            <input type="text" class="border-0 border-bottom rounded me-5 py-3 mb-4"
+                placeholder="..nhập mã giảm giá.." name="coupon_code">
+
+            <button class="btn border-secondary rounded-pill px-4 py-3 text-primary"
+                    type="submit">
+                Áp dụng mã
+            </button>
+        </form>
+
+            @if(session('message'))
+            <p style="color:green">{{ session('message') }}</p>
+            @endif
+
+            @if(session('error'))
+            <p style="color:red">{{ session('error') }}</p>
+            @endif
+
+            @if(Session::has('coupon'))
+            <div style="background:#f1f1f1; padding:10px; margin-top:10px;">
+                <p>Đã áp dụng mã: <b>{{ Session::get('coupon')->coupon_code }}</b></p>
+                <a href="{{URL::to('/remove-coupon')}}" style="color:red;">❌ Xóa mã</a>
+            </div>
+            @endif
         </div>
         <div class="row g-4 justify-content-end">
             <div class="col-8"></div>
@@ -97,10 +120,30 @@
                             <p class="mb-0">{{ number_format($sum_sp) }}</p>
                         </div>
                     </div>
-                    <div class="py-4 mb-4 border-top border-bottom d-flex justify-content-between">
+                    <div class="py-4 mb-4 border-top border-bottom">
+
+                    <div class="d-flex justify-content-between">
                         <h5 class="mb-0 ps-4 me-4">Tổng tiền:</h5>
                         <p class="mb-0 pe-4">{{ number_format($total) }} đ</p>
                     </div>
+
+                    @if(Session::has('coupon'))
+                    <div class="d-flex justify-content-between mt-2">
+                        <h5 class="mb-0 ps-4 me-4">Giảm giá:</h5>
+                        <p class="mb-0 pe-4 text-danger">
+                            -{{ number_format($discount) }} đ
+                        </p>
+                    </div>
+
+                    <div class="d-flex justify-content-between mt-2">
+                        <h5 class="mb-0 ps-4 me-4">Thành tiền:</h5>
+                        <p class="mb-0 pe-4 text-success">
+                            {{ number_format($total_after) }} đ
+                        </p>
+                    </div>
+                    @endif
+
+                </div>
                     <a href="{{URL::to('/thanh-toan')}}"><button class="btn border-secondary rounded-pill px-4 py-3 text-primary text-uppercase mb-4 ms-4" type="button">Tiến hành thanh toán</button></a>
                 </div>
             </div>

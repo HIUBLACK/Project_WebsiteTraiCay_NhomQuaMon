@@ -35,45 +35,52 @@
                             <table class="table table-bordered" id="dataTable" width="100%"  cellspacing="0">
                                 <thead>
                                     <tr>
-                                        <th>Tên sản phẩm</th>
+                                         <th>Mã đơn</th>
+                                        <th>Người nhận</th>
+                                        <th>SĐT</th>
+                                        <th>Tổng tiền</th>
+                                        <th>Thanh toán</th>
                                         <th>Ngày đặt</th>
-                                        <th>Số lượng</th>
-                                        <th>Đơn hàng</th>
-                                        <th>Ngày duyệt</th>
-                                        <th>Tùy chọn</th>
+                                        <th>Trạng thái</th>
+                                        <th>Chi tiết</th>
 
 
                                     </tr>
                                 </thead>
                                 <tbody >
-                                    @foreach ($all_oder as $key => $oder )
-                                    <tr class="{{$oder->oder_id % 2 != 0 ?'mau-trang':'mau-xam'}}" >
-                                        <td>{{$oder ->product_name}}</td>
-                                        <td>{{$oder ->created_at}}</td>
+                                    @foreach($orders as $order)
+                                    <tr>
+
+                                        <td>#{{ $order->order_id }}</td>
+
+                                        <td>{{ $order->name }}</td>
+
+                                        <td>{{ $order->phone }}</td>
+
+                                        <td>{{ number_format($order->total) }}đ</td>
 
                                         <td>
-                                            {{$oder ->oder_soluong}}
+                                            {{ $order->payment_method == 'cod' ? 'COD' : 'Chuyển khoản' }}
                                         </td>
-                                        <td>  @if($oder->oder_status == 0)
 
-                                            <a href="" style="text-decoration: none">Chưa duyệt</a>
-                                        @else
-                                            <a href="" style="text-decoration: none">Đã duyệt</a>
-                                        @endif</td>
-                                        <td>{{$oder ->updated_at}}</td>
+                                        <td>{{ $order->created_at }}</td>
 
                                         <td>
-                                            {{-- <a href="" style="text-decoration: none">
-                                                <div class="suaxoa" >
-                                                    <i class="fa fa-plus-circle fa-1x"  style="color:green"></i> Sửa
-                                                </div>
-                                            </a> --}}
-                                            <a href="{{ URL::to('/delete-oder/'.$oder->oder_id)}}" onclick="return confirm('Bạn có chắc chắn muốn xóa danh mục này không?')" style="text-decoration: none">
-                                                <div>
-                                                <i class="fa fa-trash fa-1x" style="padding-left: 1px"></i> Hủy
-                                                </div>
-                                             </a>
+                                            @if($order->status == 0)
+                                                <span style="color:orange">Chờ xử lý</span>
+                                            @elseif($order->status == 1)
+                                                <span style="color:blue">Đang giao</span>
+                                            @else
+                                                <span style="color:green">Hoàn thành</span>
+                                            @endif
                                         </td>
+
+                                        <td>
+                                            <a href="{{ url('/chi-tiet-don/'.$order->order_id) }}">
+                                                Xem
+                                            </a>
+                                        </td>
+
                                     </tr>
                                     @endforeach
                                 </tbody>

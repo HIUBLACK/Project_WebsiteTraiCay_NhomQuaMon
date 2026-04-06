@@ -22,7 +22,7 @@
                 <div class="col-md-12 col-lg-6 col-xl-7">
                     <div class="form-item">
                         <label class="form-label my-3">Họ và tên<sup style="color: red">*</sup></label>
-                        <input type="text" class="form-control"  placeholder="...">
+                        <input type="text" class="form-control"  placeholder="..." name="name">
                     </div>
                     {{-- <div class="form-item">
                         <label class="form-label my-3">Company Name<sup>*</sup></label>
@@ -30,11 +30,11 @@
                     </div> --}}
                     <div class="form-item">
                         <label class="form-label my-3">Địa chỉ<sup style="color: red">*</sup></label>
-                        <input type="text" class="form-control" placeholder="...">
+                        <input type="text" class="form-control" placeholder="..." name="address">
                     </div>
                     <div class="form-item">
                         <label class="form-label my-3" >Số điện thoại<sup style="color: red">*</sup></label>
-                        <input type="tel" class="form-control" placeholder="...">
+                        <input type="tel" class="form-control" placeholder="..." name="phone">
                     </div>
                     {{-- <div class="form-item">
                         <label class="form-label my-3">Country<sup>*</sup></label>
@@ -103,9 +103,12 @@
                                     <td class="py-5"></td>
                                     <td class="py-5"></td>
                                     <td class="py-5">
-                                        <div class="py-3 border-bottom border-top">
-                                            <p class="mb-0 text-dark">{{ number_format($total) }}đ</p>
-                                        </div>
+                                        <p class="mb-0 text-dark">Tổng: {{ number_format($total) }}đ</p>
+
+                                    @if(Session::has('coupon'))
+                                    <p class="text-danger">Giảm: -{{ number_format($discount) }}đ</p>
+                                    <p class="text-success">Thành tiền: {{ number_format($total_after) }}đ</p>
+                                    @endif
                                     </td>
                                 </tr>
                             </tbody>

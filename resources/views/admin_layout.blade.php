@@ -21,6 +21,7 @@
     <link href="{{asset('backend/css/sb-admin-2.min.css')}}" rel="stylesheet">
     <link href="{{asset('backend/css/add_category_product.css')}}" rel="stylesheet">
     <link href="{{asset('backend/css/all_category_product.css')}}" rel="stylesheet">
+    <link href="{{asset('backend/css/add_coupon.css')}}" rel="stylesheet">
 
 
 
@@ -120,6 +121,20 @@
                         <a class="collapse-item" href="{{URL::to('all-oder')}}">Danh sách đơn đặt hàng</a>
                         <a class="collapse-item" href="{{URL::to('detail-oder')}}">Chi tiết đơn đặt hàng</a>
 
+                    </div>
+                </div>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapse4"
+                    aria-expanded="true" aria-controls="collapse4">
+                    <i class="fas fa-fw fa-table"></i>
+                    <span>Quản Lý khuyến mãi</span>
+                </a>
+                <div id="collapse4" class="collapse" aria-labelledby="heading1" data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <h6 class="collapse-header">Tùy chỉnh:</h6>
+                        <a class="collapse-item" href="{{URL::to('all-coupon')}}">Danh sách khuyến mãi</a>
+                        <a class="collapse-item" href="{{URL::to('add-coupon')}}">Thêm khuyến mãi</a>
                     </div>
                 </div>
             </li>
@@ -421,6 +436,8 @@
 @yield('edit_product')
 @yield('add_product')
 @yield('all_product')
+@yield('add_coupon')
+@yield('all_coupon')
 
 
 
@@ -512,7 +529,40 @@ document.getElementById('product_image').addEventListener('change', function (e)
     }
 });
 </script>
+<script>
+document.getElementById('coupon_scope').addEventListener('change', function(){
+    document.getElementById('product-table').style.display =
+        this.value == 2 ? 'block' : 'none';
+});
 
+document.getElementById('check_all').addEventListener('change', function(){
+    document.querySelectorAll('input[name="product_ids[]"]').forEach(cb => {
+        cb.checked = this.checked;
+    });
+});
+
+document.getElementById('coupon_value').addEventListener('input', updatePrice);
+document.getElementById('coupon_type').addEventListener('change', updatePrice);
+
+function updatePrice(){
+    let value = document.getElementById('coupon_value').value || 0;
+    let type = document.getElementById('coupon_type').value;
+
+    document.querySelectorAll('.preview-price').forEach(el=>{
+        let price = el.dataset.price;
+        let result = price;
+
+        if(type == 1){
+            result = price - (price * value / 100);
+        }else{
+            result = price - value;
+        }
+
+        if(result < 0) result = 0;
+        el.innerText = Math.round(result).toLocaleString();
+    });
+}
+</script>
 </body>
 
 </html>

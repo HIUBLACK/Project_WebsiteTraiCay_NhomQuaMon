@@ -396,36 +396,84 @@ class HomeController extends Controller
     // GIỎ HÀNG — Hiển thị
     // =========================================================
     public function gio_hang()
-    {
-        if (!Auth::check()) {
-            return redirect('/dang-nhap-dang-ky')->with('error', 'Bạn cần đăng nhập để xem giỏ hàng.');
-        }
-
-        $id = Auth::id();
-        $all_oder = DB::table('tbl_oder')
-            ->join('tbl_product', 'tbl_oder.oder_id_product', '=', 'tbl_product.product_id')
-            ->where('tbl_oder.oder_status', 2)
-            ->where('tbl_oder.oder_id_user', $id)
-            ->orderByDesc('tbl_oder.oder_id')
-            ->select(
-                'tbl_oder.*',
-                'tbl_product.product_image',
-                'tbl_product.product_name',
-                'tbl_product.product_price',
-                DB::raw('(tbl_product.product_price * tbl_oder.oder_soluong) as thanh_tien')
-            )
-            ->get();
-
-        $total   = $all_oder->sum('thanh_tien');
-        $sum_sp  = $all_oder->sum('oder_soluong');
-
-        $manager_oder = view('pages.cart')
-            ->with('all_oder', $all_oder)
-            ->with('total', $total)
-            ->with('sum_sp', $sum_sp);
-
-        return view('user_layout')->with('pages.cart', $manager_oder);
+{
+    if (!Auth::check()) {
+        return redirect('/dang-nhap-dang-ky')
+            ->with('error', 'Bạn cần đăng nhập để xem giỏ hàng.');
     }
+
+    $id = Auth::id();
+
+    $all_oder = DB::table('tbl_oder')
+        ->join('tbl_product', 'tbl_oder.oder_id_product', '=', 'tbl_product.product_id')
+        ->where('tbl_oder.oder_status', 2)
+        ->where('tbl_oder.oder_id_user', $id)
+        ->orderByDesc('tbl_oder.oder_id')
+        ->select(
+            'tbl_oder.*',
+            'tbl_product.product_image',
+            'tbl_product.product_name',
+            'tbl_product.product_price',
+            DB::raw('(tbl_product.product_price * tbl_oder.oder_soluong) as thanh_tien')
+        )
+        ->get();
+
+    $total   = $all_oder->sum('thanh_tien');
+    $sum_sp  = $all_oder->sum('oder_soluong');
+
+    // =========================
+    // 🔥 THÊM LOGIC COUPON
+    // =========================
+    $discount = 0;
+
+    if (Session::has('coupon')) {
+
+        $coupon = Session::get('coupon');
+
+        foreach ($all_oder as $item) {
+
+            $price = $item->product_price;
+            $qty   = $item->oder_soluong;
+            $apply = true;
+
+            // nếu coupon áp dụng theo sản phẩm
+            if ($coupon->coupon_scope == 2) {
+                $check = DB::table('tbl_coupon_product')
+                    ->where('coupon_id', $coupon->coupon_id)
+                    ->where('product_id', $item->oder_id_product)
+                    ->first();
+
+                if (!$check) {
+                    $apply = false;
+                }
+            }
+
+            if ($apply) {
+                if ($coupon->coupon_type == 1) {
+                    // giảm %
+                    $discount += ($price * $qty * $coupon->coupon_value) / 100;
+                } else {
+                    // giảm tiền
+                    $discount += $coupon->coupon_value;
+                }
+            }
+        }
+    }
+
+    $total_after = max(0, $total - $discount);
+
+    // =========================
+    // TRUYỀN VIEW
+    // =========================
+    $manager_oder = view('pages.cart')
+        ->with('all_oder', $all_oder)
+        ->with('total', $total)
+        ->with('sum_sp', $sum_sp)
+        ->with('discount', $discount)
+        ->with('total_after', $total_after);
+
+    return view('user_layout')->with('pages.cart', $manager_oder);
+}
 
     // =========================================================
     // GIỎ HÀNG — Cập nhật số lượng

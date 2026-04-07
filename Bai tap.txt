@@ -1,0 +1,18 @@
+Bài 1:
+Áp dụng nguyên lý nhân:
+Số ghế tối đa có thể ghi nhận là: 26 * 90 = 2340
+Đặt tên cho ghế dãy 1 số 1 tính từ phải qua:
+Lâm D20
+
+Bài 2:
+10 xâu bit ngẫu nhiên trong 128 xâu:
+1010110
+0111011
+1100001
+0011100
+1110100
+0101010
+1001111
+0001110
+1011001
+0110000

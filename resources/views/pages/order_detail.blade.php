@@ -1,6 +1,14 @@
 @extends('user_layout')
-@section('oder_detail')
+@section('order_detail')
+<div class="container-fluid page-header py-5">
+    <h1 class="text-center text-white display-6">Lịch sử đặt hàng</h1>
+    <ol class="breadcrumb justify-content-center mb-0">
+        <li class="breadcrumb-item"><a href="#">Trang Chủ</a></li>
 
+        <li class="breadcrumb-item active text-white">Trang</li>
+        <li class="breadcrumb-item active text-white">Chi tiết đặt hàng/li>
+    </ol>
+</div>
 <div class="container py-5">
 
     <h3>Chi tiết đơn hàng</h3>

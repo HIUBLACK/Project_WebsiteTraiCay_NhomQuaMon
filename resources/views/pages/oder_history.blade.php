@@ -43,47 +43,64 @@
                                         <th>Ngày đặt</th>
                                         <th>Trạng thái</th>
                                         <th>Chi tiết</th>
+                                         <th>Hủy đơn</th>
 
 
                                     </tr>
                                 </thead>
-                                <tbody >
-                                    @foreach($orders as $order)
-                                    <tr>
+                                <tbody>
+@foreach($orders as $order)
+<tr>
 
-                                        <td>#{{ $order->order_id }}</td>
+    <td>#{{ $order->order_id }}</td>
 
-                                        <td>{{ $order->name }}</td>
+    <td>{{ $order->name }}</td>
 
-                                        <td>{{ $order->phone }}</td>
+    <td>{{ $order->phone }}</td>
 
-                                        <td>{{ number_format($order->total) }}đ</td>
+    <td>{{ number_format($order->total) }}đ</td>
 
-                                        <td>
-                                            {{ $order->payment_method == 'cod' ? 'COD' : 'Chuyển khoản' }}
-                                        </td>
+    <td>
+        {{ $order->payment_method == 'cod' ? 'COD' : 'Thanh toán khi nhận hàng' }}
+    </td>
 
-                                        <td>{{ $order->created_at }}</td>
+    <td>{{ $order->created_at }}</td>
 
-                                        <td>
-                                            @if($order->status == 0)
-                                                <span style="color:orange">Chờ xử lý</span>
-                                            @elseif($order->status == 1)
-                                                <span style="color:blue">Đang giao</span>
-                                            @else
-                                                <span style="color:green">Hoàn thành</span>
-                                            @endif
-                                        </td>
+    <!-- ✅ TRẠNG THÁI -->
+    <td>
+        @if($order->status == 0)
+            <span style="color:orange">Chờ duyệt</span>
+        @elseif($order->status == 1)
+            <span style="color:green">Đã duyệt</span>
+        @elseif($order->status == 3)
+            <span style="color:red">Đã hủy</span>
+        @endif
+    </td>
 
-                                        <td>
-                                            <a href="{{ url('/chi-tiet-don/'.$order->order_id) }}">
-                                                Xem
-                                            </a>
-                                        </td>
+    <!-- ✅ CHI TIẾT -->
+    <td>
+        <a href="{{ url('/chi-tiet-don/'.$order->order_id) }}">
+            Xem
+        </a>
+    </td>
 
-                                    </tr>
-                                    @endforeach
-                                </tbody>
+    <!-- ✅ HỦY ĐƠN -->
+    <td>
+        @if($order->status == 0)
+            <a href="{{ url('/huy-don/'.$order->order_id) }}"
+               onclick="return confirm('Bạn có chắc muốn hủy đơn này?')"
+               style="text-decoration: none">
+
+                <i class="fa fa-times text-danger"></i> Hủy
+            </a>
+        @else
+            <span style="color:gray">Không thể hủy</span>
+        @endif
+    </td>
+
+</tr>
+@endforeach
+</tbody>
                             </table>
                         </div>
                     </div>

@@ -44,4 +44,33 @@ class AdminController extends Controller
         session::put('admin_id',null);
         return Redirect::to('/admin-dang-nhap');
     }
+    //Xếp hạng người dùng
+ public function xep_hang_nguoi_dung(){
+    $all_rank_user = DB::table('users')
+        ->leftJoin('tbl_oder', 'users.id', '=', 'tbl_oder.oder_id_user')
+        ->leftJoin('tbl_order_main', 'tbl_oder.oder_id', '=', 'tbl_order_main.order_id')
+        ->select(
+            'users.id',
+            'users.name',
+            'users.email',
+            'users.rank',
+
+            DB::raw('COALESCE(SUM(tbl_oder.oder_soluong), 0) as total_quantity'),
+
+            // ✅ FIX CHUẨN
+            DB::raw('COALESCE(SUM(DISTINCT tbl_order_main.total), 0) as total_amount')
+        )
+        ->groupBy(
+            'users.id',
+            'users.name',
+            'users.email',
+            'users.rank'
+        )
+        ->orderBy('total_amount', 'desc')
+        ->orderBy('total_quantity', 'desc')
+        ->get();
+
+    return view('pages_admin.all_rank_user')
+        ->with('all_rank_user', $all_rank_user);
+}
 }

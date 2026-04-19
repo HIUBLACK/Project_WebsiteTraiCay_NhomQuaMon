@@ -142,3 +142,6 @@ Route::get('/delete-coupon/{id}', 'App\Http\Controllers\CouponController@delete_
 Route::post('/apply-coupon', 'App\Http\Controllers\CheckOutController@apply_coupon');
 Route::get('/remove-coupon', 'App\Http\Controllers\CheckOutController@remove_coupon');
 Route::get('/chi-tiet-don/{id}','App\Http\Controllers\OderController@chi_tiet_don');
+Route::get('/huy-don/{id}', 'App\Http\Controllers\OderController@huy_don');
+//Xếp hạng người dùng
+Route::get('/all-rank-user', 'App\Http\Controllers\AdminController@xep_hang_nguoi_dung');

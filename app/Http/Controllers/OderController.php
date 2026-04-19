@@ -362,4 +362,37 @@ class OderController extends Controller
         DB::table('tbl_oder')->where('oder_id', $oder_id)->delete();
         return redirect('lich-su-dat-hang')->with('message', 'Hủy đơn hàng thành công!');
     }
+   public function huy_don($id)
+{
+    if (!Auth::check()) {
+        return redirect('/dang-nhap-dang-ky')
+            ->with('error','Bạn cần đăng nhập');
+    }
+
+    $user_id = Auth::id();
+
+    $order = DB::table('tbl_oder')
+        ->where('oder_id', $id)
+        ->where('oder_id_user', $user_id)
+        ->first();
+
+    if (!$order) {
+        return back()->with('error','Không tìm thấy đơn');
+    }
+
+    // ❌ chỉ cho hủy khi chưa duyệt
+    if ($order->oder_status != 0) {
+        return back()->with('error','Đơn đã duyệt, không thể hủy');
+    }
+
+    // ✅ cập nhật trạng thái thay vì delete
+    DB::table('tbl_oder')
+        ->where('oder_id', $id)
+        ->update([
+            'oder_status' => 3,
+            'updated_at' => now()
+        ]);
+
+    return back()->with('message','Hủy đơn thành công');
+}
 }

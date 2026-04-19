@@ -425,11 +425,10 @@ class HomeController extends Controller
     // 🔥 THÊM LOGIC COUPON
     // =========================
     $discount = 0;
-
-    if (Session::has('coupon')) {
-
-        $coupon = Session::get('coupon');
-
+    $coupons = [];
+    $coupon = Session::get('coupon', null);
+    if ($coupon) {
+        $coupons[] = $coupon;
         foreach ($all_oder as $item) {
 
             $price = $item->product_price;
@@ -470,7 +469,9 @@ class HomeController extends Controller
         ->with('total', $total)
         ->with('sum_sp', $sum_sp)
         ->with('discount', $discount)
-        ->with('total_after', $total_after);
+        ->with('total_after', $total_after)
+        ->with('coupons', $coupons)
+        ->with('coupons_db', []); // Đảm bảo luôn có biến coupons_db
 
     return view('user_layout')->with('pages.cart', $manager_oder);
 }
@@ -569,4 +570,5 @@ class HomeController extends Controller
         $manager_oder = view('pages.notification')->with('all_oder', $all_oder);
         return view('user_layout')->with('pages.notification', $manager_oder);
     }
+
 }

@@ -150,7 +150,8 @@ class CheckOutController extends Controller
         'phone' => $request->phone,
         'total' => $total_after,
         'payment_method' => $request->payment_method,
-        'created_at' => now()
+        'created_at'      => now(),
+
     ]);
 
     // ✅ GẮN ORDER_ID + UPDATE STATUS
@@ -162,6 +163,23 @@ class CheckOutController extends Controller
                 'order_id'=>$order_main_id
             ]);
     }
+
+    // ✅ CẬP NHẬT TỔNG TIỀN & XẾP HẠNG
+    // Cộng dồn tổng tiền đã mua
+    DB::table('users')->where('id', $user_id)->increment('total_spent', $total_after);
+
+    // Lấy tổng tiền mới
+    $tong_tien = DB::table('users')->where('id', $user_id)->value('total_spent');
+    // Xác định xếp hạng
+    $rank = 'Thường';
+    if ($tong_tien >= 10000000) {
+        $rank = 'Kim cương';
+    } elseif ($tong_tien >= 5000000) {
+        $rank = 'Vàng';
+    } elseif ($tong_tien >= 1000000) {
+        $rank = 'Bạc';
+    }
+    DB::table('users')->where('id', $user_id)->update(['rank' => $rank]);
 
     // ✅ UPDATE COUPON
     if (Session::has('coupon')) {

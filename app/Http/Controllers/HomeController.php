@@ -269,9 +269,101 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 class HomeController extends Controller
 {
+    private function couponAppliesToUser($couponId, $user)
+    {
+        $userList = DB::table('tbl_coupon_user')
+            ->where('coupon_id', $couponId)
+            ->pluck('user_id')
+            ->toArray();
+
+        if (count($userList) > 0 && !in_array($user->id, $userList)) {
+            return false;
+        }
+
+        $rankList = DB::table('tbl_coupon_rank')
+            ->where('coupon_id', $couponId)
+            ->pluck('rank')
+            ->toArray();
+
+        if (count($rankList) > 0 && !in_array($user->rank, $rankList)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private function couponAppliesToProduct($coupon, $productId)
+    {
+        if ((int) $coupon->coupon_scope !== 2) {
+            return true;
+        }
+
+        return DB::table('tbl_coupon_product')
+            ->where('coupon_id', $coupon->coupon_id)
+            ->where('product_id', $productId)
+            ->exists();
+    }
+
+    private function validateCouponForCart($coupon, $user, $cartItems)
+    {
+        if (!$coupon) {
+            return false;
+        }
+
+        if ($coupon->coupon_expiry && Carbon::now()->gt($coupon->coupon_expiry)) {
+            return false;
+        }
+
+        if ($coupon->coupon_usage_limit > 0 && $coupon->coupon_used_count >= $coupon->coupon_usage_limit) {
+            return false;
+        }
+
+        if (!$this->couponAppliesToUser($coupon->coupon_id, $user)) {
+            return false;
+        }
+
+        if ($cartItems->isEmpty()) {
+            return false;
+        }
+
+        $total = 0;
+        $quantity = 0;
+        $hasApplicableProduct = false;
+
+        foreach ($cartItems as $item) {
+            $total += $item->product_price * $item->oder_soluong;
+            $quantity += $item->oder_soluong;
+
+            if ($this->couponAppliesToProduct($coupon, $item->oder_id_product)) {
+                $hasApplicableProduct = true;
+            }
+        }
+
+        if ((int) $coupon->coupon_scope === 2 && !$hasApplicableProduct) {
+            return false;
+        }
+
+        $cond = DB::table('tbl_coupon_conditions')
+            ->where('coupon_id', $coupon->coupon_id)
+            ->first();
+
+        if ($cond) {
+            if ($cond->min_order_value && $total < $cond->min_order_value) {
+                return false;
+            }
+
+            if ($cond->min_order_quantity && $quantity < $cond->min_order_quantity) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     // Trang chủ
     public function user()
     {
@@ -347,6 +439,7 @@ class HomeController extends Controller
     // ĐĂNG XUẤT
     public function user_logout()
     {
+
         Session::put('name_acoutn', '');
         Auth::logout();
         return Redirect::to('/dang-nhap-dang-ky');
@@ -427,36 +520,26 @@ class HomeController extends Controller
     $discount = 0;
     $coupons = [];
     $coupon = Session::get('coupon', null);
-    if ($coupon) {
+    $user = DB::table('users')->where('id', $id)->first();
+
+    if ($coupon && $user && $this->validateCouponForCart($coupon, $user, $all_oder)) {
         $coupons[] = $coupon;
         foreach ($all_oder as $item) {
 
             $price = $item->product_price;
             $qty   = $item->oder_soluong;
-            $apply = true;
 
-            // nếu coupon áp dụng theo sản phẩm
-            if ($coupon->coupon_scope == 2) {
-                $check = DB::table('tbl_coupon_product')
-                    ->where('coupon_id', $coupon->coupon_id)
-                    ->where('product_id', $item->oder_id_product)
-                    ->first();
-
-                if (!$check) {
-                    $apply = false;
-                }
-            }
-
-            if ($apply) {
+            if ($this->couponAppliesToProduct($coupon, $item->oder_id_product)) {
                 if ($coupon->coupon_type == 1) {
-                    // giảm %
                     $discount += ($price * $qty * $coupon->coupon_value) / 100;
                 } else {
-                    // giảm tiền
                     $discount += $coupon->coupon_value;
                 }
             }
         }
+    } elseif ($coupon) {
+        Session::forget('coupon');
+
     }
 
     $total_after = max(0, $total - $discount);

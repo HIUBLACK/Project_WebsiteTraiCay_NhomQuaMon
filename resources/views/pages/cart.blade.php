@@ -84,13 +84,21 @@
         </div>
         <div class="mt-5">
          <!-- nhập mã -->
+
+
             <form action="{{URL::to('/apply-coupon')}}" method="POST">
             @csrf
-            <input type="text" name="coupon_code" placeholder="Nhập mã">
-            <button type="submit">Áp dụng</button>
-            </form>
-            @if(count($coupons))
+            <input type="text" class="border-0 border-bottom rounded me-5 py-3 mb-4"
+                placeholder="..nhập mã giảm giá.." name="coupon_code">
+
+            <button class="btn border-secondary rounded-pill px-4 py-3 text-primary"
+                    type="submit">
+                Áp dụng mã
+            </button>
+        </form>
+        @if(count($coupons))
     <div class="mt-3">
+
         <h5>Mã đã chọn:</h5>
 
         @foreach($coupons as $c)
@@ -102,31 +110,21 @@
     </div>
 @endif
 
-            <!-- mở popup -->
-            <button onclick="openCoupon()">Chọn mã</button>
+
 
             <!-- popup -->
             <div id="couponModal" style="display:none; position:fixed; top:10%; left:30%; width:40%; background:#fff; padding:20px; border-radius:10px; box-shadow:0 0 10px #000;">
 
-            <h3>Mã giảm giá</h3>
 
-            @foreach($coupons_db as $c)
+
+
             <div style="border-bottom:1px solid #eee; padding:10px">
-                <b>{{ $c->coupon_code }}</b><br>
 
-                @if($c->coupon_type == 1)
-                    Giảm {{ $c->coupon_value }}%
-                @else
-                    Giảm {{ number_format($c->coupon_value) }}đ
-                @endif
 
-                <br>
 
-                <button onclick="selectCoupon('{{ $c->coupon_code }}')">Dùng</button>
             </div>
-            @endforeach
 
-            <button onclick="closeCoupon()">Đóng</button>
+
 
 </div>
         </div>

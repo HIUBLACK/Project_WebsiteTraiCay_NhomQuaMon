@@ -24,6 +24,7 @@
                             <th>Giá trị</th>
                             <th>Phạm vi</th>
                             <th>Giới hạn</th>
+                            <th>Mỗi khách</th>
                             <th>Đã dùng</th>
                             <th>Hết hạn</th>
                             <th>Trạng thái</th>
@@ -53,6 +54,7 @@
                             </td>
 
                             <td>{{ $coupon->coupon_usage_limit }}</td>
+                            <td>{{ (int) $coupon->coupon_user_usage_mode === 1 ? '1 lần' : 'Nhiều lần' }}</td>
 
                             <td>{{ $coupon->coupon_used_count }}</td>
 

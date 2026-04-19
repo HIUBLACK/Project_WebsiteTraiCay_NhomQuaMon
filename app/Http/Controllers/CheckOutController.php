@@ -12,6 +12,46 @@ use Termwind\Components\Raw;
 use Carbon\Carbon;
 class CheckOutController extends Controller
 {
+    private function couponIsSingleUsePerUser($coupon)
+    {
+        return isset($coupon->coupon_user_usage_mode) && (int) $coupon->coupon_user_usage_mode === 1;
+    }
+
+    private function couponAppliesToUser($couponId, $user)
+    {
+        $userList = DB::table('tbl_coupon_user')
+            ->where('coupon_id', $couponId)
+            ->pluck('user_id')
+            ->toArray();
+
+        if (count($userList) > 0 && !in_array($user->id, $userList)) {
+            return false;
+        }
+
+        $rankList = DB::table('tbl_coupon_rank')
+            ->where('coupon_id', $couponId)
+            ->pluck('rank')
+            ->toArray();
+
+        if (count($rankList) > 0 && !in_array($user->rank, $rankList)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private function couponAppliesToProduct($coupon, $productId)
+    {
+        if ((int) $coupon->coupon_scope !== 2) {
+            return true;
+        }
+
+        return DB::table('tbl_coupon_product')
+            ->where('coupon_id', $coupon->coupon_id)
+            ->where('product_id', $productId)
+            ->exists();
+    }
+
     public function thanh_toan(){
 
     if (!Auth::check()) {
@@ -34,7 +74,7 @@ class CheckOutController extends Controller
     ->get();
 
     if ($all_oder->isEmpty()) {
-        return redirect('/gio-hang')->with('error', 'Giỏ hàng trống');
+        return redirect('/gio-hang')->with('message', 'Giỏ hàng trống');
     }
 
     $total = $all_oder->sum(function($item){
@@ -46,25 +86,19 @@ class CheckOutController extends Controller
 
     if (Session::has('coupon')) {
         $coupon = Session::get('coupon');
+        $user = DB::table('users')->where('id', Auth::id())->first();
 
-        foreach ($all_oder as $item) {
+        if ($user && $this->couponAppliesToUser($coupon->coupon_id, $user)) {
+            foreach ($all_oder as $item) {
 
-            $apply = true;
+                if (!$this->couponAppliesToProduct($coupon, $item->oder_id_product)) {
+                    continue;
+                }
 
-            if ($coupon->coupon_scope == 2) {
-                $check = DB::table('tbl_coupon_product')
-                    ->where('coupon_id', $coupon->coupon_id)
-                    ->where('product_id', $item->oder_id_product)
-                    ->first();
-
-                if (!$check) $apply = false;
-            }
-
-            if ($apply) {
                 if ($coupon->coupon_type == 1) {
                     $discount += ($item->product_price * $item->oder_soluong * $coupon->coupon_value)/100;
                 } else {
-                    $discount = $coupon->coupon_value;
+                    $discount += $coupon->coupon_value;
                 }
             }
         }
@@ -93,7 +127,7 @@ class CheckOutController extends Controller
         ->get();
 
     if ($cart->isEmpty()) {
-        return redirect('/gio-hang')->with('error','Giỏ hàng trống');
+        return redirect('/gio-hang')->with('message','Giỏ hàng trống');
     }
 
     // ✅ tính tổng
@@ -112,29 +146,23 @@ class CheckOutController extends Controller
     if (Session::has('coupon')) {
 
         $coupon = Session::get('coupon');
+        $user = DB::table('users')->where('id', $user_id)->first();
 
-        foreach ($cart as $item) {
+        if ($user && $this->couponAppliesToUser($coupon->coupon_id, $user)) {
+            foreach ($cart as $item) {
 
             $price = DB::table('tbl_product')
                 ->where('product_id',$item->oder_id_product)
                 ->value('product_price');
 
-            $apply = true;
+                if (!$this->couponAppliesToProduct($coupon, $item->oder_id_product)) {
+                    continue;
+                }
 
-            if ($coupon->coupon_scope == 2) {
-                $check = DB::table('tbl_coupon_product')
-                    ->where('coupon_id',$coupon->coupon_id)
-                    ->where('product_id',$item->oder_id_product)
-                    ->first();
-
-                if (!$check) $apply = false;
-            }
-
-            if ($apply) {
                 if ($coupon->coupon_type == 1) {
                     $discount += ($price * $item->oder_soluong * $coupon->coupon_value)/100;
                 } else {
-                    $discount = $coupon->coupon_value;
+                    $discount += $coupon->coupon_value;
                 }
             }
         }
@@ -190,10 +218,20 @@ class CheckOutController extends Controller
             ->where('coupon_id',$coupon->coupon_id)
             ->increment('coupon_used_count');
 
-        DB::table('tbl_coupon_usage')->insert([
-            'coupon_id'=>$coupon->coupon_id,
-            'user_id'=>$user_id
-        ]);
+        if ($this->couponIsSingleUsePerUser($coupon)) {
+            $exists = DB::table('tbl_coupon_usage')
+                ->where('coupon_id', $coupon->coupon_id)
+                ->where('user_id', $user_id)
+                ->exists();
+
+            if (!$exists) {
+                DB::table('tbl_coupon_usage')->insert([
+                    'coupon_id' => $coupon->coupon_id,
+                    'user_id' => $user_id,
+                    'created_at' => now(),
+                ]);
+            }
+        }
 
         Session::forget('coupon');
     }
@@ -207,36 +245,101 @@ class CheckOutController extends Controller
     {
         $coupon = DB::table('tbl_coupon')
             ->where('coupon_code', $request->coupon_code)
-            ->where('coupon_condition', 1)
             ->first();
 
-        if (!$coupon) return back()->with('error','Sai mã');
+        if (!$coupon) return back()->with('message','Sai mã');
 
         if ($coupon->coupon_expiry && Carbon::now()->gt($coupon->coupon_expiry))
-            return back()->with('error','Hết hạn');
+            return back()->with('message','Hết hạn');
+        if ($coupon->coupon_usage_limit > 0 && $coupon->coupon_used_count >= $coupon->coupon_usage_limit)
+            return back()->with('message','Hết lượt');
 
-        if ($coupon->coupon_usage_limit > 0 &&
-            $coupon->coupon_used_count >= $coupon->coupon_usage_limit)
-            return back()->with('error','Hết lượt');
+        $user_id = Auth::id();
+        $user = DB::table('users')->where('id', $user_id)->first();
+        if (!$user) return back()->with('message','Không tìm thấy user');
 
-        $user_id = Session::get('user_id');
+        if ($this->couponIsSingleUsePerUser($coupon)) {
+            $used = DB::table('tbl_coupon_usage')
+                ->where('coupon_id', $coupon->coupon_id)
+                ->where('user_id', $user_id)
+                ->exists();
 
-        $used = DB::table('tbl_coupon_usage')
-            ->where('coupon_id',$coupon->coupon_id)
-            ->where('user_id',$user_id)
-            ->first();
+            if ($used) {
+                Session::forget('coupon');
+                return back()->with('message','Mã này chỉ được dùng 1 lần cho mỗi khách hàng');
+            }
+        }
 
-        if ($used) return back()->with('error','Đã dùng');
+        if (!$this->couponAppliesToUser($coupon->coupon_id, $user)) {
+            Session::forget('coupon');
+            return back()->with('message','Mã này không áp dụng cho bạn');
+        }
+
+        $cart = DB::table('tbl_oder')->where('oder_id_user', $user_id)->where('oder_status',2)->get();
+        if ($cart->isEmpty()) {
+            Session::forget('coupon');
+            return back()->with('message','Giỏ hàng trống');
+        }
+
+        if ((int) $coupon->coupon_scope === 2) {
+            $hasApplicableProduct = false;
+
+            foreach ($cart as $item) {
+                if ($this->couponAppliesToProduct($coupon, $item->oder_id_product)) {
+                    $hasApplicableProduct = true;
+                    break;
+                }
+            }
+
+            if (!$hasApplicableProduct) {
+                Session::forget('coupon');
+                return back()->with('message','Mã này không áp dụng cho sản phẩm trong giỏ hàng');
+            }
+        }
+
+        $rankList = DB::table('tbl_coupon_rank')->where('coupon_id', $coupon->coupon_id)->pluck('rank')->toArray();
+        if (count($rankList) > 0 && !in_array($user->rank, $rankList)) {
+            Session::forget('coupon');
+            return back()->with('message','Mã này không áp dụng cho rank của bạn');
+        }
+        // Kiểm tra điều kiện đơn hàng
+        $cond = DB::table('tbl_coupon_conditions')->where('coupon_id', $coupon->coupon_id)->first();
+        $total = 0; $quantity = 0;
+        foreach ($cart as $item) {
+            $price = DB::table('tbl_product')->where('product_id',$item->oder_id_product)->value('product_price');
+            $total += $price * $item->oder_soluong;
+            $quantity += $item->oder_soluong;
+        }
+        if ($cond) {
+            if ($cond->min_order_value && $total < $cond->min_order_value) {
+                Session::forget('coupon');
+                return back()->with('message','Chưa đủ giá trị tối thiểu');
+            }
+            if ($cond->min_order_quantity && $quantity < $cond->min_order_quantity) {
+                Session::forget('coupon');
+                return back()->with('message','Chưa đủ số lượng sản phẩm');
+            }
+        }
 
         Session::put('coupon',$coupon);
-
-        return back()->with('message','OK');
+        return back()->with('message','Đã áp dụng mã giảm giá');
     }
 
-    public function remove_coupon(){
-        Session::forget('coupon');
-        return back();
+   public function remove_coupon($coupon_id){
+    if (!Session::has('coupon')) {
+        return back()->with('message', 'Chưa có mã giảm giá để xóa');
     }
+
+    $coupon = Session::get('coupon');
+
+    if ((int) $coupon->coupon_id !== (int) $coupon_id) {
+        return back()->with('message', 'Mã giảm giá không hợp lệ');
+    }
+
+    Session::forget('coupon');
+
+    return back()->with('message', 'Đã gỡ mã giảm giá');
+}
 
 
 }

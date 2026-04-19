@@ -140,7 +140,7 @@ Route::get('/delete-coupon/{id}', 'App\Http\Controllers\CouponController@delete_
 
 // USER
 Route::post('/apply-coupon', 'App\Http\Controllers\CheckOutController@apply_coupon');
-Route::get('/remove-coupon', 'App\Http\Controllers\CheckOutController@remove_coupon');
+Route::get('/remove-coupon/{coupon_id}', 'App\Http\Controllers\CheckOutController@remove_coupon');
 Route::get('/chi-tiet-don/{id}','App\Http\Controllers\OderController@chi_tiet_don');
 Route::get('/huy-don/{id}', 'App\Http\Controllers\OderController@huy_don');
 //Xếp hạng người dùng

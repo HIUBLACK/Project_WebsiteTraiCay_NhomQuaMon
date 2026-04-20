@@ -56,4 +56,8 @@ class AccoutnController extends Controller
 
         return redirect('/all-taikhoan')->with('message', 'Cập nhật tài khoản thành công');
     }
+    //Thêm tài khoản admin
+    public function add_accoutn(){
+        return view('pages_admin.add_accoutn');
+    }
 }

@@ -403,7 +403,9 @@ class HomeController extends Controller
         DB::table('users')->insert([
             'name'     => $request->user_name,
             'email'    => $request->user_email,
+
             'password' => bcrypt($request->user_password),
+            'created_at' => now(),
         ]);
 
         Session::put('message', 'Đăng ký tài khoản thành công! Vui lòng đăng nhập.');

@@ -77,7 +77,7 @@
                     <div class="bg-white py-2 collapse-inner rounded">
                         <h6 class="collapse-header">Tùy chỉnh:</h6>
                         <a class="collapse-item" href="{{URL::to('all-taikhoan')}}">Danh sách tài khoản</a>
-                        <a class="collapse-item" href="{{URL::to('them-danhmuc-sanpham')}}">Thêm tài khoản</a>
+                        <a class="collapse-item" href="{{URL::to('add-accoutn')}}">Thêm tài khoản</a>
                     </div>
                 </div>
             </li>

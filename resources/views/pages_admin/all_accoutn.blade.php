@@ -17,8 +17,7 @@
                             <th>Tên người dùng</th>
                             <th>Ngày tạo</th>
                             <th>Email</th>
-                            <th>Xếp hạng</th>
-                            <th>Tổng chi tiêu</th>
+
                             <th>Tùy chỉnh</th>
                         </tr>
                     </thead>
@@ -28,8 +27,7 @@
                             <td>{{ $acc->name }}</td>
                             <td>{{ $acc->created_at }}</td>
                             <td>{{ $acc->email }}</td>
-                            <td>{{ $acc->rank ?? 'Thường' }}</td>
-                            <td>{{ number_format($acc->total_spent ?? 0) }}đ</td>
+
                             <td>
                                 <a href="{{ url('/edit-accoutn/'.$acc->id) }}" style="text-decoration: none">
                                     <div class="suaxoa">

@@ -135,6 +135,9 @@ Route::get('/delete-coupon/{id}', 'App\Http\Controllers\CouponController@delete_
     //Sửa tài khoản
 Route::get('/edit-accoutn/{id}', 'App\Http\Controllers\AccoutnController@edit_accoutn');
 Route::post('/update-accoutn/{id}', 'App\Http\Controllers\AccoutnController@update_accoutn');
+    //thêm tài khoản
+Route::get('/add-accoutn', 'App\Http\Controllers\AccoutnController@add_accoutn');
+Route::post('/save-accoutn', 'App\Http\Controllers\AccoutnController@save_accoutn');
 
 
 // USER

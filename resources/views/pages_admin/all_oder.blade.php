@@ -1,89 +1,100 @@
 @extends('admin_layout')
 @section('all_oder')
-            <!-- Begin Page Content -->
-            <div class="container-fluid">
+<div class="container-fluid">
+    <h1 class="h3 mb-2 text-gray-800">Danh sách đơn hàng</h1>
 
-                <!-- Page Heading -->
-                <h1 class="h3 mb-2 text-gray-800">Danh sách đơn hàng</h1>
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            @if(session('message'))
+                <span style="color:green">{{ session('message') }}</span>
+            @endif
+        </div>
 
-                <!-- DataTales Example -->
-                <div class="card shadow mb-4">
-                    <div class="card-header py-3">
-                        <h6 class="m-0 font-weight-bold text-primary">
-                            <?php
-                                $name = session()->get('message_category_product');
-                                if($name){
-                                echo "<span class='message_category' >
-                                    $name
-                                    <i class='fas fa-check'></i>
-                                 </span>";
-                                 session()->put('message_category_product', null);
-                                }
-                            ?>
-                        </h6>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-bordered" id="dataTable" width="100%"  cellspacing="0">
-                                <thead>
-                                    <tr>
-                                        <th>STT</th>
-                                        <th>Mã đơn</th>
-                                        <th>Ngày đặt</th>
-                                        <th>Ngày xác nhận</th>
-                                        <th>Số lượng</th>
-                                        <th>Tổng tiền</th>
-                                        <th>Trạng thái đơn</th>
-                                        <th>Tùy chỉnh:</th>
-                                    </tr>
-                                </thead>
-                                <tbody >
-                                    <?php
-                                        $dem=1;
-                                    ?>
-                                    @foreach ($all_oder as $key => $oder )
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Mã đơn</th>
+                            <th>Khách hàng</th>
+                            <th>Ngày đặt</th>
+                            <th>Số lượng</th>
+                            <th>Tổng tiền</th>
+                            <th>Thanh toán</th>
+                            <th>Trạng thái đơn</th>
+                            <th>Cập nhật</th>
+                            <th>Chi tiết</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($orders as $order)
+                        <tr>
+                            <td>#{{ $order->order_id }}</td>
+                            <td>
+                                {{ $order->name }}<br>
+                                <small>{{ $order->user_email }}</small>
+                            </td>
+                            <td>{{ $order->created_at }}</td>
+                            <td>{{ $order->total_quantity }}</td>
+                            <td>{{ number_format($order->total) }}đ</td>
+                            <td>
+                                {{ $order->payment_method == 'vnpay' ? 'VNPay' : 'COD' }}<br>
+                                <small>{{ $paymentStatusLabels[$order->payment_status] ?? 'Không xác định' }}</small>
+                            </td>
+                            <td>{{ $orderStatusLabels[$order->status] ?? 'Không xác định' }}</td>
+                            <td>
+                                @php
+                                    $allowedTargets = [
+                                        0 => [1, 5],
+                                        1 => [2, 5],
+                                        2 => [3],
+                                        3 => [4],
+                                        4 => [],
+                                        5 => [],
+                                    ][$order->status] ?? [];
+                                @endphp
 
-
-                                    <tr class="{{$oder->oder_id % 2 != 0 ?'mau-trang':'mau-xam'}}" >
-                                        <td><?php
-                                        echo $dem++;
-                                    ?></td>
-                                        <td></td>
-                                        <td>{{$oder ->created_at}}</td>
-                                        <td>{{$oder ->updated_at}}</td>
-
-                                        <td>
-                                            {{$oder ->oder_soluong}}
-                                        </td>
-                                        <td>200.000 vnd</td>
-                                        <td>
-                                            @if($oder->oder_status == 0)
-
-                                                <a href="{{ URL::to('/duyet-oder/'.$oder->oder_id)}}" style="text-decoration: none">Chưa duyệt</a>
-                                            @else
-                                                <a href="{{ URL::to('/huy-duyet-oder/'.$oder->oder_id)}}" style="text-decoration: none">Đã duyệt</a>
-                                            @endif
-                                            </td>
-                                        <td>
-                                            <a href="" style="text-decoration: none">
-                                                <div class="suaxoa" >
-                                                    <i class="fa fa-plus-circle fa-1x"  style="color:green"></i> Sửa
-                                                </div>
-                                            </a>
-                                            <a href="" onclick="return confirm('Bạn có chắc chắn muốn hủy đơn này không?')" style="text-decoration: none">
-                                                <div>
-                                                <i class="fa fa-trash fa-1x" style="padding-left: 1px"></i> Hủy đơn
-                                                </div>
-                                             </a>
-                                        </td>
-                                    </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
+                                @if(count($allowedTargets) > 0)
+                                <form method="POST" action="{{ url('/cap-nhat-trang-thai-don/'.$order->order_id) }}" class="admin-status-form">
+                                    @csrf
+                                    <input type="hidden" name="cancel_reason" value="">
+                                    <select name="status" class="form-control form-control-sm mb-2">
+                                        @foreach($allowedTargets as $status)
+                                            <option value="{{ $status }}">{{ $orderStatusLabels[$status] }}</option>
+                                        @endforeach
+                                    </select>
+                                    <button type="submit" class="btn btn-sm btn-primary">Cập nhật</button>
+                                </form>
+                                @else
+                                    <span style="color:gray">Không thể cập nhật</span>
+                                @endif
+                            </td>
+                            <td>
+                                <a href="{{ url('/chi-tiet-oder/'.$order->order_id) }}">Xem chi tiết</a>
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
             </div>
-            <!-- /.contidngdddder-fluid -->
+        </div>
+    </div>
+</div>
+
+<script>
+document.querySelectorAll('.admin-status-form').forEach(function(form) {
+    form.addEventListener('submit', function(event) {
+        var status = form.querySelector('select[name="status"]').value;
+        if (status === '5') {
+            var reason = prompt('Nhập lý do hủy đơn hàng:');
+            if (reason === null || reason.trim() === '') {
+                event.preventDefault();
+                alert('Bạn phải nhập lý do hủy đơn.');
+                return;
+            }
+            form.querySelector('input[name="cancel_reason"]').value = reason.trim();
+        }
+    });
+});
+</script>
 @endsection

@@ -83,7 +83,6 @@ class CheckOutController extends Controller
         }
 
         $discount = 0;
-
         foreach ($cart as $item) {
             if (!$this->couponAppliesToProduct($coupon, $item->oder_id_product)) {
                 continue;
@@ -96,7 +95,7 @@ class CheckOutController extends Controller
             }
         }
 
-        return $discount;
+        return (int) $discount;
     }
 
     private function validateCouponForCheckout($coupon, $user, $cart)
@@ -184,9 +183,9 @@ class CheckOutController extends Controller
             'user' => $user,
             'cart' => $cart,
             'coupon' => $coupon,
-            'total' => $total,
-            'discount' => $discount,
-            'total_after' => max(0, $total - $discount),
+            'total' => (int) $total,
+            'discount' => (int) $discount,
+            'total_after' => max(0, (int) $total - (int) $discount),
         ];
     }
 
@@ -195,8 +194,8 @@ class CheckOutController extends Controller
         DB::table('users')->where('id', $userId)->increment('total_spent', $totalAfter);
 
         $tongTien = DB::table('users')->where('id', $userId)->value('total_spent');
-
         $rank = 'Thường';
+
         if ($tongTien >= 10000000) {
             $rank = 'Kim cương';
         } elseif ($tongTien >= 5000000) {
@@ -232,22 +231,36 @@ class CheckOutController extends Controller
                 ]);
             }
         }
-
-        Session::forget('coupon');
     }
 
-    private function createOrderFromCart($userId, array $shippingData, $summary, string $paymentMethod)
+    private function finalizeOrderSuccess(array $pendingData)
     {
-        return DB::transaction(function () use ($userId, $shippingData, $summary, $paymentMethod) {
-            $orderMainId = DB::table('tbl_order_main')->insertGetId([
+        if (!empty($pendingData['effects_finalized'])) {
+            return;
+        }
+
+        $this->updateUserRankAndSpent($pendingData['user_id'], $pendingData['total_after']);
+
+        if (!empty($pendingData['coupon'])) {
+            $this->finalizeCouponUsage((object) $pendingData['coupon'], $pendingData['user_id']);
+        }
+    }
+
+    private function createOrderRecord($userId, array $shippingData, array $summary, string $paymentMethod, int $paymentStatus)
+    {
+        return DB::transaction(function () use ($userId, $shippingData, $summary, $paymentMethod, $paymentStatus) {
+            $orderId = DB::table('tbl_order_main')->insertGetId([
                 'user_id' => $userId,
                 'name' => $shippingData['name'],
                 'address' => $shippingData['address'],
                 'phone' => $shippingData['phone'],
                 'total' => $summary['total_after'],
                 'payment_method' => $paymentMethod,
-                'created_at' => now(),
                 'status' => 0,
+                'payment_status' => $paymentStatus,
+                'coupon_code' => $summary['coupon'] ? $summary['coupon']->coupon_code : null,
+                'coupon_discount' => $summary['discount'],
+                'created_at' => now(),
             ]);
 
             foreach ($summary['cart'] as $item) {
@@ -255,16 +268,13 @@ class CheckOutController extends Controller
                     ->where('oder_id', $item->oder_id)
                     ->where('oder_status', 2)
                     ->update([
+                        'order_id' => $orderId,
                         'oder_status' => 0,
-                        'order_id' => $orderMainId,
                         'updated_at' => now(),
                     ]);
             }
 
-            $this->updateUserRankAndSpent($userId, $summary['total_after']);
-            $this->finalizeCouponUsage($summary['coupon'], $userId);
-
-            return $orderMainId;
+            return $orderId;
         });
     }
 
@@ -292,16 +302,14 @@ class CheckOutController extends Controller
 
         $query = [];
         $hashData = [];
-
         foreach ($inputData as $key => $value) {
             $query[] = urlencode($key) . '=' . urlencode($value);
             $hashData[] = urlencode($key) . '=' . urlencode($value);
         }
 
-        $vnpUrl = $config['url'] . '?' . implode('&', $query);
         $secureHash = hash_hmac('sha512', implode('&', $hashData), $config['hash_secret']);
 
-        return $vnpUrl . '&vnp_SecureHash=' . $secureHash;
+        return $config['url'] . '?' . implode('&', $query) . '&vnp_SecureHash=' . $secureHash;
     }
 
     private function verifyVnpayReturn(Request $request)
@@ -328,9 +336,8 @@ class CheckOutController extends Controller
         }
 
         $summary = $this->getCheckoutSummary(Auth::id());
-
         if ($summary['cart']->isEmpty()) {
-            return redirect('/gio-hang')->with('message', 'Gio hang trong');
+            return redirect('/gio-hang')->with('message', 'Giỏ hàng trống');
         }
 
         return view('pages.checkout', [
@@ -358,7 +365,7 @@ class CheckOutController extends Controller
         $summary = $this->getCheckoutSummary($userId);
 
         if ($summary['cart']->isEmpty()) {
-            return redirect('/gio-hang')->with('message', 'Gio hang trong');
+            return redirect('/gio-hang')->with('message', 'Giỏ hàng trống');
         }
 
         $shippingData = [
@@ -368,19 +375,25 @@ class CheckOutController extends Controller
         ];
 
         if ($request->payment_method === 'cod') {
-            $this->createOrderFromCart($userId, $shippingData, $summary, 'cod');
+            $this->createOrderRecord($userId, $shippingData, $summary, 'cod', 0);
+            $this->updateUserRankAndSpent($userId, $summary['total_after']);
+            $this->finalizeCouponUsage($summary['coupon'], $userId);
+            Session::forget('coupon');
 
-            return redirect('/')->with('message', 'Dat hang COD thanh cong');
+            return redirect('/lich-su-dat-hang')->with('message', 'Đặt hàng COD thành công');
         }
 
+        $orderId = $this->createOrderRecord($userId, $shippingData, $summary, 'vnpay', 0);
+
         Session::put('pending_vnpay_checkout', [
+            'order_id' => $orderId,
             'user_id' => $userId,
-            'shipping' => $shippingData,
+            'total_after' => $summary['total_after'],
+            'coupon' => $summary['coupon'] ? (array) $summary['coupon'] : null,
+            'effects_finalized' => false,
         ]);
 
-        $vnpayUrl = $this->buildVnpayUrl($userId, $summary['total_after']);
-
-        return redirect($vnpayUrl);
+        return redirect($this->buildVnpayUrl($orderId, $summary['total_after']));
     }
 
     public function vnpay_return(Request $request)
@@ -391,35 +404,67 @@ class CheckOutController extends Controller
 
         $pending = Session::get('pending_vnpay_checkout');
         if (!$pending || (int) $pending['user_id'] !== (int) Auth::id()) {
-            return redirect('/thanh-toan')->with('message', 'Khong tim thay phien thanh toan VNPAY');
+            return redirect('/lich-su-dat-hang')->with('message', 'Không tìm thấy phiên thanh toán VNPAY');
+        }
+
+        $order = DB::table('tbl_order_main')
+            ->where('order_id', $pending['order_id'])
+            ->where('user_id', Auth::id())
+            ->first();
+
+        if (!$order) {
+            Session::forget('pending_vnpay_checkout');
+            return redirect('/lich-su-dat-hang')->with('message', 'Không tìm thấy đơn hàng VNPAY');
         }
 
         if (!$this->verifyVnpayReturn($request)) {
+            DB::table('tbl_order_main')->where('order_id', $order->order_id)->update([
+                'payment_status' => 2,
+            ]);
+            Session::forget('coupon');
             Session::forget('pending_vnpay_checkout');
-            return redirect('/thanh-toan')->with('message', 'Chu ky VNPAY khong hop le');
+
+            return redirect('/lich-su-dat-hang')->with('message', 'Chữ ký VNPAY không hợp lệ');
         }
 
-        if ($request->vnp_ResponseCode !== '00' || $request->vnp_TransactionStatus !== '00') {
+        if ($request->vnp_ResponseCode === '00' && $request->vnp_TransactionStatus === '00') {
+            $paidAmount = ((int) $request->vnp_Amount) / 100;
+
+            if ((int) $paidAmount !== (int) $order->total) {
+                DB::table('tbl_order_main')->where('order_id', $order->order_id)->update([
+                    'payment_status' => 2,
+                ]);
+                Session::forget('coupon');
+                Session::forget('pending_vnpay_checkout');
+
+                return redirect('/lich-su-dat-hang')->with('message', 'Số tiền thanh toán không khớp');
+            }
+
+            DB::table('tbl_order_main')->where('order_id', $order->order_id)->update([
+                'payment_status' => 1,
+                'status' => 0,
+            ]);
+
+            DB::table('tbl_oder')->where('order_id', $order->order_id)->update([
+                'oder_status' => 0,
+                'updated_at' => now(),
+            ]);
+
+            $this->finalizeOrderSuccess($pending);
+            Session::forget('coupon');
             Session::forget('pending_vnpay_checkout');
-            return redirect('/thanh-toan')->with('message', 'Thanh toan VNPAY that bai hoac bi huy');
+
+            return redirect('/lich-su-dat-hang')->with('message', 'Thanh toán VNPAY thành công');
         }
 
-        $summary = $this->getCheckoutSummary(Auth::id());
-        if ($summary['cart']->isEmpty()) {
-            Session::forget('pending_vnpay_checkout');
-            return redirect('/gio-hang')->with('message', 'Gio hang trong');
-        }
+        DB::table('tbl_order_main')->where('order_id', $order->order_id)->update([
+            'payment_status' => 2,
+        ]);
 
-        $paidAmount = ((int) $request->vnp_Amount) / 100;
-        if ((int) $paidAmount !== (int) $summary['total_after']) {
-            Session::forget('pending_vnpay_checkout');
-            return redirect('/thanh-toan')->with('message', 'So tien thanh toan khong khop');
-        }
-
-        $this->createOrderFromCart(Auth::id(), $pending['shipping'], $summary, 'vnpay');
+        Session::forget('coupon');
         Session::forget('pending_vnpay_checkout');
 
-        return redirect('/lich-su-dat-hang')->with('message', 'Thanh toan VNPAY thanh cong');
+        return redirect('/lich-su-dat-hang')->with('message', 'Thanh toán VNPAY thất bại hoặc bị hủy');
     }
 
     public function apply_coupon(Request $request)
@@ -429,60 +474,45 @@ class CheckOutController extends Controller
             ->first();
 
         if (!$coupon) {
-            return back()->with('message', 'Sai ma');
+            return back()->with('message', 'Sai mã');
         }
 
         if ($coupon->coupon_expiry && Carbon::now()->gt($coupon->coupon_expiry)) {
-            return back()->with('message', 'Het han');
+            return back()->with('message', 'Hết hạn');
         }
 
         if ($coupon->coupon_usage_limit > 0 && $coupon->coupon_used_count >= $coupon->coupon_usage_limit) {
-            return back()->with('message', 'Het luot');
+            return back()->with('message', 'Hết lượt');
         }
 
         $userId = Auth::id();
         $user = DB::table('users')->where('id', $userId)->first();
         if (!$user) {
-            return back()->with('message', 'Khong tim thay user');
-        }
-
-        if ($this->couponIsSingleUsePerUser($coupon)) {
-            $used = DB::table('tbl_coupon_usage')
-                ->where('coupon_id', $coupon->coupon_id)
-                ->where('user_id', $userId)
-                ->exists();
-
-            if ($used) {
-                Session::forget('coupon');
-                return back()->with('message', 'Ma nay chi duoc dung 1 lan cho moi khach hang');
-            }
+            return back()->with('message', 'Không tìm thấy user');
         }
 
         $cart = $this->getCheckoutCart($userId);
         if (!$this->validateCouponForCheckout($coupon, $user, $cart)) {
             Session::forget('coupon');
-            return back()->with('message', 'Ma giam gia khong ap dung cho gio hang hien tai');
+            return back()->with('message', 'Mã giảm giá không áp dụng cho giỏ hàng hiện tại');
         }
 
         Session::put('coupon', $coupon);
-
-        return back()->with('message', 'Da ap dung ma giam gia');
+        return back()->with('message', 'Đã áp dụng mã giảm giá');
     }
 
     public function remove_coupon($coupon_id)
     {
         if (!Session::has('coupon')) {
-            return back()->with('message', 'Chua co ma giam gia de xoa');
+            return back()->with('message', 'Chưa có mã giảm giá để xóa');
         }
 
         $coupon = Session::get('coupon');
-
         if ((int) $coupon->coupon_id !== (int) $coupon_id) {
-            return back()->with('message', 'Ma giam gia khong hop le');
+            return back()->with('message', 'Mã giảm giá không hợp lệ');
         }
 
         Session::forget('coupon');
-
-        return back()->with('message', 'Da go ma giam gia');
+        return back()->with('message', 'Đã gỡ mã giảm giá');
     }
 }

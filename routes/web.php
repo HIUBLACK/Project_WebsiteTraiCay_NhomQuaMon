@@ -118,17 +118,10 @@ Route::POST('/update-product/{product_id}', 'App\Http\Controllers\ProductControl
 
 Route::get('/all-oder',                         'App\Http\Controllers\OderController@all_oder');
 Route::get('/chi-tiet-oder/{oder_id}',          'App\Http\Controllers\OderController@show_oder');
-Route::get('/them-oder',                         'App\Http\Controllers\OderController@add_oder');
-Route::post('/save-oder',                        'App\Http\Controllers\OderController@save_oder');
-Route::get('/edit-oder/{oder_id}',               'App\Http\Controllers\OderController@edit_oder');
-Route::post('/update-oder/{oder_id}',            'App\Http\Controllers\OderController@update_oder');
-Route::get('/duyet-oder/{oder_id}',              'App\Http\Controllers\OderController@duyet_oder');
-Route::get('/huy-duyet-oder/{oder_id}',          'App\Http\Controllers\OderController@huy_duyet_oder');
-Route::get('/delete-oder/{oder_id}',             'App\Http\Controllers\OderController@delete_oder');
+Route::post('/cap-nhat-trang-thai-don/{order_id}', 'App\Http\Controllers\OderController@update_order_status');
 
 // ---- USER: Lịch sử & hủy đơn ----
 Route::get('/lich-su-dat-hang',                  'App\Http\Controllers\OderController@detail_oder');
-Route::get('/huy-don-hang/{oder_id}',            'App\Http\Controllers\OderController@user_cancel_oder');
 
 
 
@@ -143,7 +136,6 @@ Route::get('/delete-coupon/{id}', 'App\Http\Controllers\CouponController@delete_
 Route::post('/apply-coupon', 'App\Http\Controllers\CheckOutController@apply_coupon');
 Route::get('/remove-coupon/{coupon_id}', 'App\Http\Controllers\CheckOutController@remove_coupon');
 Route::get('/chi-tiet-don/{id}','App\Http\Controllers\OderController@chi_tiet_don');
-Route::get('/huy-don/{id}', 'App\Http\Controllers\OderController@huy_don');
+Route::post('/huy-don/{id}', 'App\Http\Controllers\OderController@huy_don');
 //Xếp hạng người dùng
 Route::get('/all-rank-user', 'App\Http\Controllers\AdminController@xep_hang_nguoi_dung');
-

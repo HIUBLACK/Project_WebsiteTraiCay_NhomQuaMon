@@ -43,16 +43,12 @@
                             <td>{{$acc ->password}}</td>
 
                             <td>
-                                <a href="{{URL::to('/edit-category-product/'.$acc->id)}}" style="text-decoration: none">
+                                <a href="" style="text-decoration: none">
                                     <div class="suaxoa" >
                                         <i class="fa fa-plus-circle fa-1x"  style="color:green"></i> Sửa
                                     </div>
                                 </a>
-                                <a href="{{ URL::to('/delete-category-product/'.$acc->id)}}" onclick="return confirm('Bạn có chắc chắn muốn xóa tài khoản này không?')" style="text-decoration: none">
-                                    <div>
-                                    <i class="fa fa-trash fa-1x" style="padding-left: 1px"></i> Xóa
-                                    </div>
-                                 </a>
+
                             </td>
                         </tr>
                         @endforeach

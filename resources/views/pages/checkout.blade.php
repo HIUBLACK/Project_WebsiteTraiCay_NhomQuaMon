@@ -34,7 +34,7 @@
                     </div>
                     <div class="form-item">
                         <label class="form-label my-3" >Số điện thoại<sup style="color: red">*</sup></label>
-                        <input type="tel" class="form-control" placeholder="..." name="phone">
+                        <input type="text" class="form-control" placeholder="..." name="phone" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                     </div>
                     {{-- <div class="form-item">
                         <label class="form-label my-3">Country<sup>*</sup></label>

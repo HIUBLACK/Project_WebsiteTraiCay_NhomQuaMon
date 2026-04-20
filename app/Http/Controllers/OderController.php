@@ -1,398 +1,293 @@
 <?php
 
-// namespace App\Http\Controllers;
-// use Illuminate\Support\Facades\Auth;
-
-// use Illuminate\Http\Request;
-// use Illuminate\Support\Facades\DB;
-// use App\Http\Requests;
-// use Illuminate\Support\Facades\Session;
-// use Illuminate\Support\Facades\Redirect;
-
-// class OderController extends Controller
-// {
-//     public function all_oder() {
-//         $all_oder = DB::table('tbl_oder')->where('oder_status','!=','2')->orderByDesc('oder_id')->get();
-//         $manager_oder = view('pages_admin.all_oder')->with('all_oder', $all_oder);
-//         return view("admin_layout")->with('pages_admin.all_oder',$manager_oder);
-//     }
-
-//     public function detail_oder() {
-//          if (!Auth::check()) {
-//             return redirect('/dang-nhap-dang-ky')->with('error', 'Bạn cần đăng nhập để đặt hàng');
-//         }
-//         // $all_oder = DB::table('tbl_oder')->where('oder_status','!=','2')->orderByDesc('oder_id')->get();
-//         // $manager_oder = view('pages.oder_history')->with('all_oder', $all_oder);
-//         // //session()->put('thongbao', $dem-2);
-//         // return view("user_layout")->with('oder_history',$manager_oder);
-
-//         $id = Auth::id();
-//         $all_oder = DB::table('tbl_oder')
-//         ->join('tbl_product', 'tbl_oder.oder_id_product', '=', 'tbl_product.product_id')
-//         ->where('tbl_oder.oder_status', '!=','2')
-//         ->where('tbl_oder.oder_id_user', $id)
-//         ->orderByDesc('tbl_oder.oder_id')
-//         ->select(
-//             'tbl_oder.*',
-//             'tbl_product.product_image',
-//             'tbl_product.product_name',
-//             'tbl_product.product_price',
-//             DB::raw('(tbl_product.product_price * tbl_oder.oder_soluong) as thanh_tien')
-//         )
-//         ->get();
-
-//     // Tính tổng tiền tất cả đơn hàng
-
-//     $total = $all_oder->sum('thanh_tien');
-//     $sum_sp =$all_oder->sum('oder_soluong');
-
-//     // Truyền ra view
-//     $manager_oder = view('pages.oder_history')
-//         ->with('all_oder', $all_oder)
-//         ->with('total', $total)
-//         ->with('sum_sp', $sum_sp);
-
-//     return view("user_layout")->with('pages.oder_history', $manager_oder);
-//     }
-//     public function unactivate_category_product($category_product_id){
-//         DB::table("tbl_oder")->where("oder_id",$category_product_id)->update(['oder_status'=>1]);
-//         DB::table("tbl_oder")->where("oder_id",$category_product_id)->update(['updated_at'=>now()]);
-//         Session::put("message_category_product", 'Duyệt đơn thành công');
-//         return redirect("all-oder");
-//     }
-//     public function activate_category_product($category_product_id){
-//         DB::table("tbl_oder")->where("oder_id",$category_product_id)->update(['oder_status'=>0]);
-//         DB::table("tbl_oder")->where("oder_id",$category_product_id)->update(['updated_at'=>null]);
-//         Session::put("message_category_product", 'Hủy duyệt đơn thành công');
-//         return redirect("all-oder");
-//     }
-//     public function delete_oder($oder_id) {
-//          DB::table("tbl_oder")->where("oder_id",$oder_id)->delete();
-
-//         return redirect("lich-su-dat-hang")->with('message', 'Hủy đơn hàng thành công!');
-//     }
-
-// }
-
-
-
-
-
 namespace App\Http\Controllers;
 
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Session;
 
 class OderController extends Controller
 {
-    // =========================================================
-    // ADMIN — Danh sách tất cả đơn hàng
-    // GET /all-oder
-    // =========================================================
-    public function all_oder()
+    private function orderStatusLabels()
     {
-        $all_oder = DB::table('tbl_oder')
-            ->join('tbl_product', 'tbl_oder.oder_id_product', '=', 'tbl_product.product_id')
-            ->join('users', 'tbl_oder.oder_id_user', '=', 'users.id')
-            ->where('tbl_oder.oder_status', '!=', 2)
-            ->orderByDesc('tbl_oder.oder_id')
+        return [
+            0 => 'Chờ xác nhận',
+            1 => 'Đã xác nhận',
+            2 => 'Đang chuẩn bị',
+            3 => 'Đang giao',
+            4 => 'Đã giao',
+            5 => 'Đã hủy',
+        ];
+    }
+
+    private function paymentStatusLabels()
+    {
+        return [
+            0 => 'Chưa thanh toán',
+            1 => 'Đã thanh toán',
+            2 => 'Thanh toán thất bại',
+            3 => 'Đã hoàn tiền',
+        ];
+    }
+
+    private function allowedTransitions()
+    {
+        return [
+            0 => [1, 5],
+            1 => [2, 5],
+            2 => [3],
+            3 => [4],
+            4 => [],
+            5 => [],
+        ];
+    }
+
+    private function getAllowedTargetStatuses(int $status)
+    {
+        return $this->allowedTransitions()[$status] ?? [];
+    }
+
+    private function canCancelOrder(int $status)
+    {
+        return in_array($status, [0, 1], true);
+    }
+
+    private function updateOrderAndItemsStatus(int $orderId, int $status)
+    {
+        DB::table('tbl_order_main')
+            ->where('order_id', $orderId)
+            ->update([
+                'status' => $status,
+            ]);
+
+        DB::table('tbl_oder')
+            ->where('order_id', $orderId)
+            ->update([
+                'oder_status' => $status,
+                'updated_at' => now(),
+            ]);
+    }
+
+    private function cancelOrderRecord($order, string $reason)
+    {
+        if (!$this->canCancelOrder((int) $order->status)) {
+            return 'Đơn hàng không thể hủy ở trạng thái hiện tại';
+        }
+
+        if (trim($reason) === '') {
+            return 'Vui lòng nhập lý do hủy';
+        }
+
+        DB::transaction(function () use ($order, $reason) {
+            $updateData = [
+                'status' => 5,
+                'cancel_reason' => $reason,
+                'cancelled_at' => now(),
+            ];
+
+            if ((int) $order->payment_status === 1) {
+                $updateData['payment_status'] = 3;
+            }
+
+            DB::table('tbl_order_main')
+                ->where('order_id', $order->order_id)
+                ->update($updateData);
+
+            DB::table('tbl_oder')
+                ->where('order_id', $order->order_id)
+                ->update([
+                    'oder_status' => 5,
+                    'updated_at' => now(),
+                ]);
+        });
+
+        return null;
+    }
+
+    private function getOrderForUser($orderId, $userId)
+    {
+        return DB::table('tbl_order_main')
+            ->where('order_id', $orderId)
+            ->where('user_id', $userId)
+            ->first();
+    }
+
+    private function getOrderDetailPayload($orderId)
+    {
+        $order = DB::table('tbl_order_main')
+            ->leftJoin('users', 'tbl_order_main.user_id', '=', 'users.id')
+            ->where('tbl_order_main.order_id', $orderId)
             ->select(
-                'tbl_oder.*',
-                'tbl_product.product_name',
-                'tbl_product.product_image',
-                'tbl_product.product_price',
+                'tbl_order_main.*',
                 'users.name as user_name',
-                'users.email as user_email',
+                'users.email as user_email'
+            )
+            ->first();
+
+        if (!$order) {
+            return null;
+        }
+
+        $items = DB::table('tbl_oder')
+            ->join('tbl_product', 'tbl_oder.oder_id_product', '=', 'tbl_product.product_id')
+            ->where('tbl_oder.order_id', $orderId)
+            ->select(
+                'tbl_oder.oder_id',
+                'tbl_oder.oder_soluong',
+                'tbl_oder.oder_status',
+                'tbl_product.product_name',
+                'tbl_product.product_price',
                 DB::raw('(tbl_product.product_price * tbl_oder.oder_soluong) as thanh_tien')
             )
             ->get();
 
-        $manager_oder = view('pages_admin.all_oder')->with('all_oder', $all_oder);
-        return view('admin_layout')->with('pages_admin.all_oder', $manager_oder);
+        return [
+            'order' => $order,
+            'items' => $items,
+            'orderStatusLabels' => $this->orderStatusLabels(),
+            'paymentStatusLabels' => $this->paymentStatusLabels(),
+            'allowedStatuses' => $this->getAllowedTargetStatuses((int) $order->status),
+        ];
     }
 
-    // =========================================================
-    // ADMIN — Chi tiết 1 đơn hàng
-    // GET /chi-tiet-oder/{oder_id}
-    // =========================================================
-    public function show_oder($oder_id)
+    public function all_oder()
     {
-        $oder = DB::table('tbl_oder')
-            ->join('tbl_product', 'tbl_oder.oder_id_product', '=', 'tbl_product.product_id')
-            ->join('users', 'tbl_oder.oder_id_user', '=', 'users.id')
-            ->where('tbl_oder.oder_id', $oder_id)
+        $orders = DB::table('tbl_order_main')
+            ->leftJoin('users', 'tbl_order_main.user_id', '=', 'users.id')
+            ->leftJoin('tbl_oder', 'tbl_order_main.order_id', '=', 'tbl_oder.order_id')
             ->select(
-                'tbl_oder.*',
-                'tbl_product.product_name',
-                'tbl_product.product_image',
-                'tbl_product.product_price',
+                'tbl_order_main.*',
                 'users.name as user_name',
                 'users.email as user_email',
-                'users.phone as user_phone',
-                DB::raw('(tbl_product.product_price * tbl_oder.oder_soluong) as thanh_tien')
+                DB::raw('COALESCE(SUM(tbl_oder.oder_soluong), 0) as total_quantity')
             )
-            ->first();
+            ->groupBy(
+                'tbl_order_main.order_id',
+                'tbl_order_main.user_id',
+                'tbl_order_main.name',
+                'tbl_order_main.address',
+                'tbl_order_main.phone',
+                'tbl_order_main.total',
+                'tbl_order_main.payment_method',
+                'tbl_order_main.created_at',
+                'tbl_order_main.status',
+                'tbl_order_main.payment_status',
+                'tbl_order_main.coupon_code',
+                'tbl_order_main.coupon_discount',
+                'tbl_order_main.cancel_reason',
+                'tbl_order_main.cancelled_at',
+                'users.name',
+                'users.email'
+            )
+            ->orderByDesc('tbl_order_main.order_id')
+            ->get();
 
-        if (!$oder) {
-            return redirect('all-oder')->with('error', 'Không tìm thấy đơn hàng!');
+        return view('pages_admin.all_oder', [
+            'orders' => $orders,
+            'orderStatusLabels' => $this->orderStatusLabels(),
+            'paymentStatusLabels' => $this->paymentStatusLabels(),
+        ]);
+    }
+
+    public function show_oder($orderId)
+    {
+        $payload = $this->getOrderDetailPayload($orderId);
+        if (!$payload) {
+            return redirect('/all-oder')->with('message', 'Không tìm thấy đơn hàng');
         }
 
-        $manager_oder = view('pages_admin.detail_oder')->with('oder', $oder);
-        return view('admin_layout')->with('pages_admin.detail_oder', $manager_oder);
+        return view('pages_admin.admin_order_detail', $payload);
     }
 
-    // =========================================================
-    // ADMIN — Form tạo đơn hàng thủ công (admin tạo hộ)
-    // GET /them-oder
-    // =========================================================
-    public function add_oder()
-    {
-        $all_product = DB::table('tbl_product')->where('product_status', 1)->get();
-        $all_user    = DB::table('users')->get();
-
-        $manager = view('pages_admin.add_oder')
-            ->with('all_product', $all_product)
-            ->with('all_user', $all_user);
-
-        return view('admin_layout')->with('pages_admin.add_oder', $manager);
-    }
-
-    // =========================================================
-    // ADMIN — Lưu đơn hàng thủ công
-    // POST /save-oder
-    // =========================================================
-    public function save_oder(Request $request)
+    public function update_order_status(Request $request, $orderId)
     {
         $request->validate([
-            'oder_id_user'    => 'required|exists:users,id',
-            'oder_id_product' => 'required|exists:tbl_product,product_id',
-            'oder_soluong'    => 'required|integer|min:1',
-        ], [
-            'oder_id_user.required'    => 'Vui lòng chọn khách hàng.',
-            'oder_id_product.required' => 'Vui lòng chọn sản phẩm.',
-            'oder_soluong.min'         => 'Số lượng phải ít nhất là 1.',
+            'status' => 'required|integer|min:0|max:5',
+            'cancel_reason' => 'nullable|string|max:1000',
         ]);
 
-        DB::table('tbl_oder')->insert([
-            'oder_id_user'    => $request->oder_id_user,
-            'oder_id_product' => $request->oder_id_product,
-            'oder_soluong'    => $request->oder_soluong,
-            'oder_status'     => 0, // Chờ xử lý
-            'created_at'      => now(),
-            'updated_at'      => now(),
-        ]);
-
-        Session::put('message_oder', 'Tạo đơn hàng thành công!');
-        return redirect('all-oder');
-    }
-
-    // =========================================================
-    // ADMIN — Form sửa đơn hàng
-    // GET /edit-oder/{oder_id}
-    // =========================================================
-    public function edit_oder($oder_id)
-    {
-        $oder = DB::table('tbl_oder')->where('oder_id', $oder_id)->first();
-
-        if (!$oder) {
-            return redirect('all-oder')->with('error', 'Không tìm thấy đơn hàng!');
+        $order = DB::table('tbl_order_main')->where('order_id', $orderId)->first();
+        if (!$order) {
+            return redirect('/all-oder')->with('message', 'Không tìm thấy đơn hàng');
         }
 
-        $all_product = DB::table('tbl_product')->where('product_status', 1)->get();
-        $all_user    = DB::table('users')->get();
+        $targetStatus = (int) $request->status;
+        $allowed = $this->getAllowedTargetStatuses((int) $order->status);
 
-        $manager = view('pages_admin.edit_oder')
-            ->with('oder', $oder)
-            ->with('all_product', $all_product)
-            ->with('all_user', $all_user);
-
-        return view('admin_layout')->with('pages_admin.edit_oder', $manager);
-    }
-
-    // =========================================================
-    // ADMIN — Cập nhật đơn hàng
-    // POST /update-oder/{oder_id}
-    // =========================================================
-    public function update_oder(Request $request, $oder_id)
-    {
-        $request->validate([
-            'oder_soluong' => 'required|integer|min:1',
-            'oder_status'  => 'required|in:0,1,3',
-        ], [
-            'oder_soluong.min'    => 'Số lượng phải ít nhất là 1.',
-            'oder_status.in'      => 'Trạng thái không hợp lệ.',
-        ]);
-
-        DB::table('tbl_oder')->where('oder_id', $oder_id)->update([
-            'oder_soluong' => $request->oder_soluong,
-            'oder_status'  => $request->oder_status,
-            'updated_at'   => now(),
-        ]);
-
-        Session::put('message_oder', 'Cập nhật đơn hàng thành công!');
-        return redirect('all-oder');
-    }
-
-    // =========================================================
-    // ADMIN — Duyệt đơn (status 0 → 1)
-    // GET /duyet-oder/{oder_id}
-    // =========================================================
-    public function duyet_oder($oder_id)
-    {
-        DB::table('tbl_oder')->where('oder_id', $oder_id)->update([
-            'oder_status' => 1,
-            'updated_at'  => now(),
-        ]);
-
-        Session::put('message_oder', 'Duyệt đơn thành công!');
-        return redirect('all-oder');
-    }
-
-    // =========================================================
-    // ADMIN — Hủy duyệt đơn (status 1 → 0)
-    // GET /huy-duyet-oder/{oder_id}
-    // =========================================================
-    public function huy_duyet_oder($oder_id)
-    {
-        DB::table('tbl_oder')->where('oder_id', $oder_id)->update([
-            'oder_status' => 0,
-            'updated_at'  => null,
-        ]);
-
-        Session::put('message_oder', 'Hủy duyệt đơn thành công!');
-        return redirect('all-oder');
-    }
-
-    // =========================================================
-    // ADMIN — Xóa đơn hàng
-    // GET /delete-oder/{oder_id}
-    // =========================================================
-
-
-    // public function delete_oder($oder_id)
-    // {
-    //     DB::table('tbl_oder')->where('oder_id', $oder_id)->delete();
-    //     Session::put('message_oder', 'Xóa đơn hàng thành công!');
-    //     return redirect('all-oder');
-    // }
-     public function delete_oder($oder_id)
-    {
-        if (!Auth::check()) {
-            return redirect('/dang-nhap-dang-ky')->with('error', 'Bạn cần đăng nhập');
+        if (!in_array($targetStatus, $allowed, true)) {
+            return redirect('/all-oder')->with('message', 'Không thể chuyển trạng thái đơn hàng theo cách này');
         }
 
-        $oder = DB::table('tbl_oder')
-            ->where('oder_id', $oder_id)
-            ->where('oder_id_user', Auth::id())
-            ->first();
+        if ($targetStatus === 5) {
+            $error = $this->cancelOrderRecord($order, (string) $request->cancel_reason);
+            if ($error) {
+                return redirect('/all-oder')->with('message', $error);
+            }
 
-        if (!$oder) {
-            return redirect('lich-su-dat-hang')->with('error', 'Không tìm thấy đơn hàng!');
+            $message = (int) $order->payment_status === 1
+                ? 'Đã hủy đơn và hệ thống đang xử lý hoàn tiền'
+                : 'Đã hủy đơn hàng';
+
+            return redirect('/all-oder')->with('message', $message);
         }
 
-        if ($oder->oder_status != 0) {
-            return redirect('lich-su-dat-hang')->with('error', 'Đơn hàng đã được duyệt, không thể hủy!');
-        }
+        $this->updateOrderAndItemsStatus($orderId, $targetStatus);
 
-        DB::table('tbl_oder')->where('oder_id', $oder_id)->delete();
-        return redirect('lich-su-dat-hang')->with('message', 'Hủy đơn hàng thành công!');
+        return redirect('/all-oder')->with('message', 'Cập nhật trạng thái đơn hàng thành công');
     }
 
-    // =========================================================
-    // USER — Lịch sử đặt hàng của user đang đăng nhập
-    // GET /lich-su-dat-hang
-    // =========================================================
     public function detail_oder()
     {
         if (!Auth::check()) {
-            return redirect('/dang-nhap-dang-ky')->with('error', 'Bạn cần đăng nhập để xem đơn hàng');
+            return redirect('/dang-nhap-dang-ky')->with('message', 'Bạn cần đăng nhập để xem đơn hàng');
         }
 
-        $user_id = Auth::id();
+        $orders = DB::table('tbl_order_main')
+            ->where('user_id', Auth::id())
+            ->orderByDesc('order_id')
+            ->get();
 
-    $orders = DB::table('tbl_order_main')
-        ->where('user_id',$user_id)
-        ->orderByDesc('order_id')
-        ->get();
-
-    return view('pages.oder_history', compact('orders'));
+        return view('pages.oder_history', [
+            'orders' => $orders,
+            'orderStatusLabels' => $this->orderStatusLabels(),
+            'paymentStatusLabels' => $this->paymentStatusLabels(),
+        ]);
     }
 
-    public function chi_tiet_don($id){
-
-    $details = DB::table('tbl_oder')
-        ->join('tbl_product','tbl_oder.oder_id_product','=','tbl_product.product_id')
-        ->where('order_id',$id)
-        ->select(
-            'tbl_product.product_name',
-            'tbl_product.product_price',
-            'tbl_oder.oder_soluong',
-            DB::raw('(tbl_product.product_price * tbl_oder.oder_soluong) as thanh_tien')
-        )
-        ->get();
-
-    return view('pages.order_detail', compact('details'));
-}
-
-    // =========================================================
-    // USER — Hủy đơn hàng (chỉ được hủy khi status = 0)
-    // GET /huy-don-hang/{oder_id}
-    // =========================================================
-    public function user_cancel_oder($oder_id)
+    public function chi_tiet_don($orderId)
     {
         if (!Auth::check()) {
-            return redirect('/dang-nhap-dang-ky')->with('error', 'Bạn cần đăng nhập');
+            return redirect('/dang-nhap-dang-ky')->with('message', 'Bạn cần đăng nhập');
         }
 
-        $oder = DB::table('tbl_oder')
-            ->where('oder_id', $oder_id)
-            ->where('oder_id_user', Auth::id())
-            ->first();
-
-        if (!$oder) {
-            return redirect('lich-su-dat-hang')->with('error', 'Không tìm thấy đơn hàng!');
+        $payload = $this->getOrderDetailPayload($orderId);
+        if (!$payload || (int) $payload['order']->user_id !== (int) Auth::id()) {
+            return redirect('/lich-su-dat-hang')->with('message', 'Không tìm thấy đơn hàng');
         }
 
-        if ($oder->oder_status != 0) {
-            return redirect('lich-su-dat-hang')->with('error', 'Đơn hàng đã được duyệt, không thể hủy!');
+        return view('pages.order_detail', $payload);
+    }
+
+    public function huy_don(Request $request, $orderId)
+    {
+        if (!Auth::check()) {
+            return redirect('/dang-nhap-dang-ky')->with('message', 'Bạn cần đăng nhập');
         }
 
-        DB::table('tbl_oder')->where('oder_id', $oder_id)->delete();
-        return redirect('lich-su-dat-hang')->with('message', 'Hủy đơn hàng thành công!');
+        $order = $this->getOrderForUser($orderId, Auth::id());
+        if (!$order) {
+            return redirect('/lich-su-dat-hang')->with('message', 'Không tìm thấy đơn hàng');
+        }
+
+        $error = $this->cancelOrderRecord($order, (string) $request->cancel_reason);
+        if ($error) {
+            return redirect('/lich-su-dat-hang')->with('message', $error);
+        }
+
+        $message = (int) $order->payment_status === 1
+            ? 'Đã hủy đơn và hệ thống đang xử lý hoàn tiền'
+            : 'Đã hủy đơn hàng';
+
+        return redirect('/lich-su-dat-hang')->with('message', $message);
     }
-   public function huy_don($id)
-{
-    if (!Auth::check()) {
-        return redirect('/dang-nhap-dang-ky')
-            ->with('error','Bạn cần đăng nhập');
-    }
-
-    $user_id = Auth::id();
-
-    $order = DB::table('tbl_oder')
-        ->where('oder_id', $id)
-        ->where('oder_id_user', $user_id)
-        ->first();
-
-    if (!$order) {
-        return back()->with('error','Không tìm thấy đơn');
-    }
-
-    // ❌ chỉ cho hủy khi chưa duyệt
-    if ($order->oder_status != 0) {
-        return back()->with('error','Đơn đã duyệt, không thể hủy');
-    }
-
-    // ✅ cập nhật trạng thái thay vì delete
-    DB::table('tbl_oder')
-        ->where('oder_id', $id)
-        ->update([
-            'oder_status' => 3,
-            'updated_at' => now()
-        ]);
-
-    return back()->with('message','Hủy đơn thành công');
-}
 }

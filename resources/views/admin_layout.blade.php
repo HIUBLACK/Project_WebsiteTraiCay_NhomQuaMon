@@ -119,7 +119,7 @@
                     <div class="bg-white py-2 collapse-inner rounded">
                         <h6 class="collapse-header">Quản lý đơn hàng</h6>
                         <a class="collapse-item" href="{{URL::to('all-oder')}}">Danh sách đơn đặt hàng</a>
-                        <a class="collapse-item" href="{{URL::to('detail-oder')}}">Chi tiết đơn đặt hàng</a>
+
 
                     </div>
                 </div>
@@ -453,6 +453,7 @@
 @yield('add_coupon')
 @yield('all_coupon')
 @yield('all_rank_user')
+@yield('admin_order_detail')
 
 
 

@@ -1,155 +1,154 @@
- @extends('user_layout')
- @section('checkout')
- <!-- Single Page Header start -->
- <div class="container-fluid page-header py-5">
+@extends('user_layout')
+@section('checkout')
+<div class="container-fluid page-header py-5">
     <h1 class="text-center text-white display-6">Thanh toán</h1>
     <ol class="breadcrumb justify-content-center mb-0">
-        <li class="breadcrumb-item"><a href="#">Trang chủ</a></li>
-        <li class="breadcrumb-item"><a href="#">Trang</a></li>
+        <li class="breadcrumb-item"><a href="{{ url('/trang-chu') }}">Trang chủ</a></li>
+        <li class="breadcrumb-item"><a href="{{ url('/gio-hang') }}">Giỏ hàng</a></li>
         <li class="breadcrumb-item active text-white">Thanh toán</li>
     </ol>
 </div>
-<!-- Single Page Header End -->
 
+<div class="container py-5">
+    <style>
+        .checkout-shell {
+            background: linear-gradient(180deg, #eff6ff 0%, #ffffff 28%);
+            border-radius: 24px;
+            padding: 28px;
+        }
+        .checkout-card {
+            background: #fff;
+            border-radius: 20px;
+            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+        }
+        .payment-option {
+            border: 1px solid #e5e7eb;
+            border-radius: 18px;
+            padding: 18px;
+            transition: 0.2s ease;
+        }
+        .payment-option:hover {
+            border-color: #fdba74;
+            background: #fff7ed;
+        }
+        .checkout-thumb {
+            width: 72px;
+            height: 72px;
+            border-radius: 16px;
+            object-fit: cover;
+        }
+    </style>
 
-<!-- Checkout Page Start -->
-<div class="container-fluid py-5">
-    <div class="container py-5">
-        <h1 class="mb-4">Thông tin nhận hàng</h1>
-         <form method="post" action="{{url('/xu-ly-thanh-toan')}}">
-                     {{csrf_field()}}
-            <div class="row g-5">
-                <div class="col-md-12 col-lg-6 col-xl-7">
-                    <div class="form-item">
-                        <label class="form-label my-3">Họ và tên<sup style="color: red">*</sup></label>
-                        <input type="text" class="form-control"  placeholder="..." name="name">
-                    </div>
-                    {{-- <div class="form-item">
-                        <label class="form-label my-3">Company Name<sup>*</sup></label>
-                        <input type="text" class="form-control">
-                    </div> --}}
-                    <div class="form-item">
-                        <label class="form-label my-3">Địa chỉ<sup style="color: red">*</sup></label>
-                        <input type="text" class="form-control" placeholder="..." name="address">
-                    </div>
-                    <div class="form-item">
-                        <label class="form-label my-3" >Số điện thoại<sup style="color: red">*</sup></label>
-                        <input type="text" class="form-control" placeholder="..." name="phone" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
-                    </div>
-                    {{-- <div class="form-item">
-                        <label class="form-label my-3">Country<sup>*</sup></label>
-                        <input type="text" class="form-control">
-                    </div>
-                    <div class="form-item">
-                        <label class="form-label my-3">Postcode/Zip<sup>*</sup></label>
-                        <input type="text" class="form-control">
-                    </div>
-                    <div class="form-item">
-                        <label class="form-label my-3">Mobile<sup>*</sup></label>
-                        <input type="tel" class="form-control">
-                    </div> --}}
-                    {{-- <div class="form-item">
-                        <label class="form-label my-3" >Email<sup style="color: red">*</sup></label>
-                        <input type="email" class="form-control" placeholder="...">
-                    </div> --}}
-                    {{-- <div class="form-check my-3">
-                        <input type="checkbox" class="form-check-input" id="Account-1" name="Accounts" value="Accounts">
-                        <label class="form-check-label" for="Account-1">Create an account?</label>
-                    </div> --}}
-                    <hr>
-                    {{-- <div class="form-check my-3">
-                        <input class="form-check-input" type="checkbox" id="Address-1" name="Address" value="Address">
-                        <label class="form-check-label" for="Address-1">Ship to a different address?</label>
-                    </div> --}}
-                    <div class="form-item">
-                        <textarea name="text" class="form-control" spellcheck="false" cols="30" rows="11" placeholder="Ghi chú..."></textarea>
-                    </div>
+    <form method="POST" action="{{ url('/xu-ly-thanh-toan') }}">
+        @csrf
+        <div class="checkout-shell">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+                <div>
+                    <h2 class="mb-1">Xác nhận đơn hàng</h2>
+                    <p class="text-muted mb-0">Điền thông tin nhận hàng và chọn phương thức thanh toán phù hợp.</p>
                 </div>
-
-                <div class="col-md-12 col-lg-6 col-xl-5">
-
-                    <div class="table-responsive">
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th scope="col">Sản phẩm</th>
-                                    <th scope="col">Tên</th>
-                                    <th scope="col">Giá</th>
-                                    <th scope="col" >Số lượng</th>
-                                    <th scope="col">Tất cả</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach ($all_oder as $key => $pro )
-                                <tr>
-                                    <input type="hidden" name="oder_ids[]" value="{{ $pro->oder_id }}">
-                                    <th scope="row">
-                                        <div class="d-flex align-items-center mt-2">
-                                            <img src="upload/product/{{$pro->product_image}}" class="img-fluid rounded-circle" style="width: 70px; height:70px; object-fit: fill;" alt="">
-                                        </div>
-                                    </th>
-                                    <td class="py-5">{{$pro->product_name}}</td>
-                                    <td class="py-5">{{ number_format($pro->product_price) }}đ/Kg</td>
-                                    <td class="py-5">{{$pro->oder_soluong}}</td>
-                                    <td class="py-5">{{ number_format($pro->thanh_tien) }}đ</td>
-                                </tr>
-                                @endforeach
-                                <tr>
-                                    <th scope="row">
-                                    </th>
-                                    <td class="py-5">
-                                        <p class="mb-0 text-dark text-uppercase py-3">Tổng thanh toán</p>
-                                    </td>
-                                    <td class="py-5"></td>
-                                    <td class="py-5"></td>
-                                    <td class="py-5">
-                                        <p class="mb-0 text-dark">Tổng: {{ number_format($total) }}đ</p>
-
-                                    @if(Session::has('coupon'))
-                                    <p class="text-danger">Giảm: -{{ number_format($discount) }}đ</p>
-                                    <p class="text-success">Thành tiền: {{ number_format($total_after) }}đ</p>
-                                    @endif
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="row g-4 text-center align-items-center justify-content-center border-bottom py-3">
-                        <div class="col-12">
-                            <div class="form-check text-start my-3">
-                                <input type="radio" class="form-check-input bg-primary border-0" id="Transfer-1" name="payment_method" value="vnpay" {{ old('payment_method') == 'vnpay' ? 'checked' : '' }}>
-                                <label class="form-check-label" for="Transfer-1">Thanh toán qua VNPay</label>
-                            </div>
-                            <p class="text-start text-dark">Thanh toán bằng thẻ Atm, mã QR.</p>
-                        </div>
-                    </div>
-                    <div class="row g-4 text-center align-items-center justify-content-center border-bottom py-3">
-                        <div class="col-12">
-                            <div class="form-check text-start my-3">
-                                <input type="radio" class="form-check-input bg-primary border-0" id="Payments-1" disabled>
-                                <label class="form-check-label" for="Payments-1">Thanh toán qua MoMo</label>
-                            </div>
-                            <p class="text-start text-dark">Thanh toán trực tuyến qua ví momo, nhanh chóng, tiện lợi. Tính năng đang cập nhật.</p>
-                        </div>
-                    </div>
-                    <div class="row g-4 text-center align-items-center justify-content-center border-bottom py-3">
-                        <div class="col-12">
-                            <div class="form-check text-start my-3">
-                                <input type="radio" class="form-check-input bg-primary border-0" id="Delivery-1" name="payment_method" value="cod" {{ old('payment_method', 'cod') == 'cod' ? 'checked' : '' }}>
-                                <label class="form-check-label" for="Delivery-1">Thanh toán khi nhận hàng</label>
-                            </div>
-                            <p class="text-start text-dark">Thanh toán khi nhận hàng, tiện lợi và an toàn</p>
-                        </div>
-                    </div>
-                    <div class="row g-4 text-center align-items-center justify-content-center pt-4">
-
-                        <button  name="thanh_toan"  class ="btn border-secondary py-3 px-4 text-uppercase w-100 text-primary" >Đặt hàng</button>
-                    </div>
-                    </form>
-                </div>
+                <a href="{{ url('/gio-hang') }}" class="btn btn-light rounded-pill px-4">Quay lại giỏ hàng</a>
             </div>
 
-    </div>
+            <div class="row g-4 align-items-start">
+                <div class="col-lg-7">
+                    <div class="checkout-card p-4 mb-4">
+                        <h4 class="mb-4">Thông tin nhận hàng</h4>
+                        <div class="row g-4">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Họ và tên <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control py-3" placeholder="Nhập họ và tên người nhận" name="name" value="{{ old('name') }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Số điện thoại <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control py-3" placeholder="Nhập số điện thoại" name="phone" value="{{ old('phone') }}" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-bold">Địa chỉ giao hàng <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control py-3" placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành phố" name="address" value="{{ old('address') }}">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-bold">Ghi chú cho shop</label>
+                                <textarea name="text" class="form-control" rows="5" placeholder="Ví dụ: giao giờ hành chính, gọi trước khi giao...">{{ old('text') }}</textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="checkout-card p-4">
+                        <h4 class="mb-4">Phương thức thanh toán</h4>
+                        <div class="d-grid gap-3">
+                            <label class="payment-option d-flex justify-content-between align-items-start gap-3">
+                                <div>
+                                    <div class="fw-bold mb-1">Thanh toán qua VNPay</div>
+                                    <div class="text-muted small">Thanh toán qua thẻ ATM nội địa, QR hoặc Internet Banking.</div>
+                                </div>
+                                <input type="radio" class="form-check-input mt-1" name="payment_method" value="vnpay" {{ old('payment_method') == 'vnpay' ? 'checked' : '' }}>
+                            </label>
+
+                            <label class="payment-option d-flex justify-content-between align-items-start gap-3">
+                                <div>
+                                    <div class="fw-bold mb-1">Thanh toán khi nhận hàng (COD)</div>
+                                    <div class="text-muted small">Thanh toán trực tiếp cho nhân viên giao hàng khi đơn được giao thành công.</div>
+                                </div>
+                                <input type="radio" class="form-check-input mt-1" name="payment_method" value="cod" {{ old('payment_method', 'cod') == 'cod' ? 'checked' : '' }}>
+                            </label>
+
+                            <div class="payment-option d-flex justify-content-between align-items-start gap-3 opacity-75">
+                                <div>
+                                    <div class="fw-bold mb-1">Thanh toán qua MoMo</div>
+                                    <div class="text-muted small">Tính năng đang được phát triển, hiện chưa hỗ trợ thanh toán.</div>
+                                </div>
+                                <input type="radio" class="form-check-input mt-1" disabled>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-5">
+                    <div class="checkout-card p-4 position-sticky" style="top: 120px;">
+                        <h4 class="mb-4">Đơn hàng của bạn</h4>
+
+                        <div class="d-grid gap-3">
+                            @foreach ($all_oder as $pro)
+                                <input type="hidden" name="oder_ids[]" value="{{ $pro->oder_id }}">
+                                <div class="d-flex align-items-center gap-3">
+                                    <img src="{{ asset('upload/product/'.$pro->product_image) }}" class="checkout-thumb" alt="{{ $pro->product_name }}">
+                                    <div class="flex-grow-1">
+                                        <div class="fw-bold">{{ $pro->product_name }}</div>
+                                        <div class="text-muted small">SL: {{ $pro->oder_soluong }} x {{ number_format($pro->product_price) }}đ</div>
+                                    </div>
+                                    <div class="fw-bold text-danger">{{ number_format($pro->thanh_tien) }}đ</div>
+                                </div>
+                            @endforeach
+                        </div>
+
+                        <div class="border-top mt-4 pt-4">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Tạm tính</span>
+                                <strong>{{ number_format($total) }}đ</strong>
+                            </div>
+                            @if(Session::has('coupon'))
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted">Giảm giá</span>
+                                    <strong class="text-danger">-{{ number_format($discount) }}đ</strong>
+                                </div>
+                            @endif
+                            <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+                                <span class="fw-bold">Tổng thanh toán</span>
+                                <span class="fw-bold fs-4 text-danger">{{ number_format(Session::has('coupon') ? $total_after : $total) }}đ</span>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 d-grid gap-3">
+                            <button name="thanh_toan" class="btn btn-primary rounded-pill py-3 text-uppercase">Đặt hàng ngay</button>
+                            <div class="p-3 rounded-4 small text-muted" style="background:#f8fafc;">
+                                Sau khi nhấn đặt hàng, hệ thống sẽ kiểm tra tồn kho một lần nữa trước khi tạo đơn.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
 </div>
-<!-- Checkout Page End -->
 @endsection

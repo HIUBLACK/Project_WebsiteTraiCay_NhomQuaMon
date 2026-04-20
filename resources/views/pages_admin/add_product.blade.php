@@ -96,11 +96,11 @@ body {
         </div>
         <div class="form-group">
             <label for="category-name">Giá:</label>
-            <input type="text" id="category-name" name="product_price" placeholder="Giá" required>
+            <input type="text" id="category-name" name="product_price" placeholder="Giá" required oninput="this.value = this.value.replace(/[^0-9]/g, '')">
         </div>
         <div class="form-group">
             <label for="stock-quantity">Tồn kho:</label>
-            <input type="number" id="stock-quantity" name="stock_quantity" min="0" placeholder="Số lượng tồn kho" required>
+            <input type="number" id="stock-quantity" name="stock_quantity" min="0" placeholder="Số lượng tồn kho" required oninput="this.value = this.value.replace(/[^0-9]/g, '')">
         </div>
         <div class="form-group">
             <label for="category-name">Hình ảnh:</label>

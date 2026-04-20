@@ -629,10 +629,20 @@ class HomeController extends Controller
             return redirect('/gio-hang')->with('error', 'Số lượng sản phẩm quá số tồn kho');
         }
 
+        $newQuantity = (int) $request->soluong;
+
+        if ($request->action === 'tang') {
+            $newQuantity = min((int) $oder->oder_soluong + 1, (int) $product->stock_quantity);
+        }
+
+        if ($request->action === 'giam') {
+            $newQuantity = max((int) $oder->oder_soluong - 1, 1);
+        }
+
         DB::table('tbl_oder')
             ->where('oder_id', $oder_id)
             ->update([
-                'oder_soluong' => $request->soluong,
+                'oder_soluong' => $newQuantity,
                 'updated_at' => now(),
             ]);
 

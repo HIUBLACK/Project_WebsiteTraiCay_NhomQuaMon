@@ -269,10 +269,22 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
 use Carbon\Carbon;
+use Illuminate\Support\Str;
 
 class HomeController extends Controller
 {
+    private function getActiveProductForCart($productId)
+    {
+        return DB::table('tbl_product')
+            ->where('product_id', $productId)
+            ->whereNull('deleted_at')
+            ->where('product_status', 1)
+            ->where('stock_quantity', '>', 0)
+            ->first();
+    }
+
     private function couponAppliesToUser($couponId, $user)
     {
         $userList = DB::table('tbl_coupon_user')
@@ -371,6 +383,7 @@ class HomeController extends Controller
         $all_product = DB::table('tbl_product')
             ->whereNull('deleted_at')
             ->where('product_status', 1)
+            ->where('stock_quantity', '>', 0)
             ->get();
         $manager_category_product = view('pages.home')
             ->with('all_category_product', $all_category_product)
@@ -460,13 +473,9 @@ class HomeController extends Controller
         }
 
         // Kiểm tra product_id hợp lệ
-        $product = DB::table('tbl_product')
-            ->where('product_id', $product_id)
-            ->whereNull('deleted_at')
-            ->where('product_status', 1)
-            ->first();
+        $product = $this->getActiveProductForCart($product_id);
         if (!$product) {
-            return redirect('/san-pham')->with('error', 'Sản phẩm không tồn tại.');
+            return redirect('/san-pham')->with('error', 'Sản phẩm hiện không khả dụng.');
         }
 
         $user_id = Auth::id();
@@ -479,19 +488,29 @@ class HomeController extends Controller
             ->first();
 
         if ($result) {
+            if ((int) $result->oder_soluong + 1 > (int) $product->stock_quantity) {
+                return redirect('/gio-hang')->with('error', 'Số lượng sản phẩm quá số tồn kho');
+            }
+
             DB::table('tbl_oder')
                 ->where('oder_id', $result->oder_id)
-                ->update(['oder_soluong' => $result->oder_soluong + 1]);
+                ->update([
+                    'oder_soluong' => $result->oder_soluong + 1,
+                    'updated_at' => now(),
+                ]);
         } else {
             DB::table('tbl_oder')->insert([
                 'oder_soluong'    => 1,
                 'oder_status'     => 2,
                 'oder_id_user'    => $user_id,
                 'oder_id_product' => $product_id,
+                'created_at'      => now(),
+                'updated_at'      => now(),
             ]);
         }
 
-        return redirect('/gio-hang');
+        return redirect('/gio-hang')->with('message', 'Thêm sản phẩm vào giỏ hàng thành công!');
+
     }
 
     // =========================================================
@@ -506,7 +525,7 @@ class HomeController extends Controller
 
     $id = Auth::id();
 
-    $all_oder = DB::table('tbl_oder')
+        $all_oder = DB::table('tbl_oder')
         ->join('tbl_product', 'tbl_oder.oder_id_product', '=', 'tbl_product.product_id')
         ->where('tbl_oder.oder_status', 2)
         ->where('tbl_oder.oder_id_user', $id)
@@ -516,6 +535,7 @@ class HomeController extends Controller
             'tbl_product.product_image',
             'tbl_product.product_name',
             'tbl_product.product_price',
+            'tbl_product.stock_quantity',
             DB::raw('(tbl_product.product_price * tbl_oder.oder_soluong) as thanh_tien')
         )
         ->get();
@@ -566,6 +586,7 @@ class HomeController extends Controller
         ->with('coupons_db', []); // Đảm bảo luôn có biến coupons_db
 
     return view('user_layout')->with('pages.cart', $manager_oder);
+
 }
 
     // =========================================================
@@ -599,11 +620,24 @@ class HomeController extends Controller
             return redirect('/gio-hang')->with('error', 'Không tìm thấy sản phẩm trong giỏ hàng.');
         }
 
+        $product = $this->getActiveProductForCart($oder->oder_id_product);
+        if (!$product) {
+            return redirect('/gio-hang')->with('error', 'Sản phẩm hiện không khả dụng.');
+        }
+
+        if ((int) $request->soluong > (int) $product->stock_quantity) {
+            return redirect('/gio-hang')->with('error', 'Số lượng sản phẩm quá số tồn kho');
+        }
+
         DB::table('tbl_oder')
             ->where('oder_id', $oder_id)
-            ->update(['oder_soluong' => $request->soluong]);
+            ->update([
+                'oder_soluong' => $request->soluong,
+                'updated_at' => now(),
+            ]);
 
         return redirect('/gio-hang');
+
     }
 
     // =========================================================
@@ -662,6 +696,104 @@ class HomeController extends Controller
 
         $manager_oder = view('pages.notification')->with('notifications', $notifications);
         return view('user_layout')->with('pages.notification', $manager_oder);
+    }
+
+    public function google_redirect()
+    {
+        $clientId = config('services.google.client_id');
+        $redirectUri = config('services.google.redirect');
+
+        if (!$clientId || !$redirectUri) {
+            return redirect('/dang-nhap-dang-ky')->with('message', 'Chưa cấu hình GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI trong .env');
+        }
+
+        $query = http_build_query([
+            'client_id' => $clientId,
+            'redirect_uri' => $redirectUri,
+            'response_type' => 'code',
+            'scope' => 'openid email profile',
+            'access_type' => 'online',
+            'prompt' => 'select_account',
+        ]);
+
+        return redirect('https://accounts.google.com/o/oauth2/v2/auth?' . $query);
+    }
+
+    public function google_callback(Request $request)
+    {
+        if ($request->filled('error')) {
+            return redirect('/dang-nhap-dang-ky')->with('message', 'Đăng nhập Google đã bị hủy');
+        }
+
+        $clientId = config('services.google.client_id');
+        $clientSecret = config('services.google.client_secret');
+        $redirectUri = config('services.google.redirect');
+
+        if (!$clientId || !$clientSecret || !$redirectUri) {
+            return redirect('/dang-nhap-dang-ky')->with('message', 'Chưa cấu hình đăng nhập Google trong .env');
+        }
+
+        $tokenResponse = Http::asForm()->post('https://oauth2.googleapis.com/token', [
+            'code' => $request->code,
+            'client_id' => $clientId,
+            'client_secret' => $clientSecret,
+            'redirect_uri' => $redirectUri,
+            'grant_type' => 'authorization_code',
+        ]);
+
+        if (!$tokenResponse->successful()) {
+            return redirect('/dang-nhap-dang-ky')->with('message', 'Không lấy được token đăng nhập Google');
+        }
+
+        $accessToken = $tokenResponse->json('access_token');
+        $profileResponse = Http::withToken($accessToken)->get('https://www.googleapis.com/oauth2/v2/userinfo');
+
+        if (!$profileResponse->successful()) {
+            return redirect('/dang-nhap-dang-ky')->with('message', 'Không lấy được thông tin người dùng Google');
+        }
+
+        $googleUser = $profileResponse->json();
+        $email = $googleUser['email'] ?? null;
+
+        if (!$email) {
+            return redirect('/dang-nhap-dang-ky')->with('message', 'Tài khoản Google không có email hợp lệ');
+        }
+
+        $user = DB::table('users')
+            ->where('google_id', $googleUser['id'] ?? '')
+            ->orWhere('email', $email)
+            ->first();
+
+        if ($user) {
+            DB::table('users')->where('id', $user->id)->update([
+                'name' => $googleUser['name'] ?? $user->name,
+                'google_id' => $googleUser['id'] ?? $user->google_id,
+                'avatar' => $googleUser['picture'] ?? $user->avatar,
+                'email_verified_at' => $user->email_verified_at ?: now(),
+                'updated_at' => now(),
+            ]);
+
+            $userId = $user->id;
+        } else {
+            $userId = DB::table('users')->insertGetId([
+                'name' => $googleUser['name'] ?? 'Google User',
+                'email' => $email,
+                'google_id' => $googleUser['id'] ?? null,
+                'avatar' => $googleUser['picture'] ?? null,
+                'rank' => 'Thường',
+                'total_spent' => 0,
+                'password' => bcrypt(Str::random(32)),
+                'email_verified_at' => now(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        Auth::loginUsingId($userId, true);
+        $authUser = DB::table('users')->where('id', $userId)->first();
+        session()->put('name_acoutn', $authUser->name);
+
+        return redirect('/trang-chu')->with('message', 'Đăng nhập Google thành công');
     }
 
 }

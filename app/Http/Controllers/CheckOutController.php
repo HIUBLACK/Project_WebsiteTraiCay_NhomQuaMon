@@ -10,6 +10,97 @@ use Illuminate\Support\Facades\Session;
 
 class CheckOutController extends Controller
 {
+    private function getProductForOrder(int $productId)
+    {
+        return DB::table('tbl_product')
+            ->where('product_id', $productId)
+            ->whereNull('deleted_at')
+            ->lockForUpdate()
+            ->first();
+    }
+
+    private function syncProductStatusAfterStockChange(int $productId)
+    {
+        $product = DB::table('tbl_product')->where('product_id', $productId)->first();
+
+        if (!$product) {
+            return;
+        }
+
+        $nextStatus = (int) $product->product_status;
+
+        if ((int) $product->stock_quantity <= 0) {
+            $nextStatus = 0;
+        } elseif ((int) $product->stock_quantity > 0 && (int) $product->product_status === 0) {
+            $nextStatus = 1;
+        }
+
+        if ($nextStatus !== (int) $product->product_status) {
+            DB::table('tbl_product')->where('product_id', $productId)->update([
+                'product_status' => $nextStatus,
+                'updated_at' => now(),
+            ]);
+        }
+    }
+
+    private function validateCheckoutStock($cart)
+    {
+        foreach ($cart as $item) {
+            $product = DB::table('tbl_product')
+                ->where('product_id', $item->oder_id_product)
+                ->whereNull('deleted_at')
+                ->first();
+
+            if (!$product || (int) $product->product_status !== 1 || (int) $product->stock_quantity <= 0) {
+                return 'Có sản phẩm trong giỏ hiện không khả dụng';
+            }
+
+            if ((int) $item->oder_soluong > (int) $product->stock_quantity) {
+                return 'Số lượng sản phẩm quá số tồn kho';
+            }
+        }
+
+        return null;
+    }
+
+    private function restoreStockForOrder(int $orderId)
+    {
+        $items = DB::table('tbl_oder')->where('order_id', $orderId)->get();
+
+        foreach ($items as $item) {
+            DB::table('tbl_product')
+                ->where('product_id', $item->oder_id_product)
+                ->increment('stock_quantity', $item->oder_soluong);
+
+            $this->syncProductStatusAfterStockChange((int) $item->oder_id_product);
+        }
+    }
+
+    private function markVnpayOrderFailed(int $orderId)
+    {
+        DB::transaction(function () use ($orderId) {
+            $order = DB::table('tbl_order_main')->where('order_id', $orderId)->lockForUpdate()->first();
+
+            if (!$order || (int) $order->status === 5) {
+                return;
+            }
+
+            DB::table('tbl_order_main')->where('order_id', $orderId)->update([
+                'status' => 5,
+                'payment_status' => 2,
+                'cancel_reason' => 'Thanh toán VNPAY thất bại hoặc bị hủy',
+                'cancelled_at' => now(),
+            ]);
+
+            DB::table('tbl_oder')->where('order_id', $orderId)->update([
+                'oder_status' => 5,
+                'updated_at' => now(),
+            ]);
+
+            $this->restoreStockForOrder($orderId);
+        });
+    }
+
     private function getVnpayConfig()
     {
         return [
@@ -71,6 +162,7 @@ class CheckOutController extends Controller
                 'tbl_product.product_name',
                 'tbl_product.product_price',
                 'tbl_product.product_image',
+                'tbl_product.stock_quantity',
                 DB::raw('(tbl_product.product_price * tbl_oder.oder_soluong) as thanh_tien')
             )
             ->get();
@@ -249,6 +341,18 @@ class CheckOutController extends Controller
     private function createOrderRecord($userId, array $shippingData, array $summary, string $paymentMethod, int $paymentStatus)
     {
         return DB::transaction(function () use ($userId, $shippingData, $summary, $paymentMethod, $paymentStatus) {
+            foreach ($summary['cart'] as $item) {
+                $product = $this->getProductForOrder((int) $item->oder_id_product);
+
+                if (!$product || (int) $product->product_status !== 1 || (int) $product->stock_quantity <= 0) {
+                    throw new \RuntimeException('Có sản phẩm trong giỏ hiện không khả dụng');
+                }
+
+                if ((int) $item->oder_soluong > (int) $product->stock_quantity) {
+                    throw new \RuntimeException('Số lượng sản phẩm quá số tồn kho');
+                }
+            }
+
             $orderId = DB::table('tbl_order_main')->insertGetId([
                 'user_id' => $userId,
                 'name' => $shippingData['name'],
@@ -272,6 +376,12 @@ class CheckOutController extends Controller
                         'oder_status' => 0,
                         'updated_at' => now(),
                     ]);
+
+                DB::table('tbl_product')
+                    ->where('product_id', $item->oder_id_product)
+                    ->decrement('stock_quantity', $item->oder_soluong);
+
+                $this->syncProductStatusAfterStockChange((int) $item->oder_id_product);
             }
 
             return $orderId;
@@ -340,6 +450,11 @@ class CheckOutController extends Controller
             return redirect('/gio-hang')->with('message', 'Giỏ hàng trống');
         }
 
+        $stockError = $this->validateCheckoutStock($summary['cart']);
+        if ($stockError) {
+            return redirect('/gio-hang')->with('error', $stockError);
+        }
+
         return view('pages.checkout', [
             'all_oder' => $summary['cart'],
             'total' => $summary['total'],
@@ -368,6 +483,11 @@ class CheckOutController extends Controller
             return redirect('/gio-hang')->with('message', 'Giỏ hàng trống');
         }
 
+        $stockError = $this->validateCheckoutStock($summary['cart']);
+        if ($stockError) {
+            return redirect('/gio-hang')->with('error', $stockError);
+        }
+
         $shippingData = [
             'name' => $request->name,
             'address' => $request->address,
@@ -375,7 +495,12 @@ class CheckOutController extends Controller
         ];
 
         if ($request->payment_method === 'cod') {
-            $this->createOrderRecord($userId, $shippingData, $summary, 'cod', 0);
+            try {
+                $this->createOrderRecord($userId, $shippingData, $summary, 'cod', 0);
+            } catch (\RuntimeException $exception) {
+                return redirect('/gio-hang')->with('error', $exception->getMessage());
+            }
+
             $this->updateUserRankAndSpent($userId, $summary['total_after']);
             $this->finalizeCouponUsage($summary['coupon'], $userId);
             Session::forget('coupon');
@@ -383,7 +508,11 @@ class CheckOutController extends Controller
             return redirect('/lich-su-dat-hang')->with('message', 'Đặt hàng COD thành công');
         }
 
-        $orderId = $this->createOrderRecord($userId, $shippingData, $summary, 'vnpay', 0);
+        try {
+            $orderId = $this->createOrderRecord($userId, $shippingData, $summary, 'vnpay', 0);
+        } catch (\RuntimeException $exception) {
+            return redirect('/gio-hang')->with('error', $exception->getMessage());
+        }
 
         Session::put('pending_vnpay_checkout', [
             'order_id' => $orderId,
@@ -418,9 +547,7 @@ class CheckOutController extends Controller
         }
 
         if (!$this->verifyVnpayReturn($request)) {
-            DB::table('tbl_order_main')->where('order_id', $order->order_id)->update([
-                'payment_status' => 2,
-            ]);
+            $this->markVnpayOrderFailed((int) $order->order_id);
             Session::forget('coupon');
             Session::forget('pending_vnpay_checkout');
 
@@ -431,9 +558,7 @@ class CheckOutController extends Controller
             $paidAmount = ((int) $request->vnp_Amount) / 100;
 
             if ((int) $paidAmount !== (int) $order->total) {
-                DB::table('tbl_order_main')->where('order_id', $order->order_id)->update([
-                    'payment_status' => 2,
-                ]);
+                $this->markVnpayOrderFailed((int) $order->order_id);
                 Session::forget('coupon');
                 Session::forget('pending_vnpay_checkout');
 
@@ -457,9 +582,7 @@ class CheckOutController extends Controller
             return redirect('/lich-su-dat-hang')->with('message', 'Thanh toán VNPAY thành công');
         }
 
-        DB::table('tbl_order_main')->where('order_id', $order->order_id)->update([
-            'payment_status' => 2,
-        ]);
+        $this->markVnpayOrderFailed((int) $order->order_id);
 
         Session::forget('coupon');
         Session::forget('pending_vnpay_checkout');

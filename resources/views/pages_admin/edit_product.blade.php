@@ -63,6 +63,9 @@
                 <option value="0" {{ $edit_product->product_status == 0 ? 'selected' : '' }}>Ẩn</option>
                 <option value="1" {{ $edit_product->product_status == 1 ? 'selected' : '' }}>Hiện</option>
             </select>
+            <small class="form-text text-muted">
+                Khi tồn kho bằng 0, hệ thống sẽ tự động chuyển sản phẩm sang trạng thái ẩn.
+            </small>
         </div>
 
         <div class="form-group">

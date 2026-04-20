@@ -51,6 +51,46 @@
         text-overflow: ellipsis;
         max-width: 300px; /* thêm nếu khung quá rộng */
     }
+    .shop-table-card {
+        background: #fff;
+        border-radius: 18px;
+        box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08);
+        overflow: hidden;
+    }
+    .search-suggest-box {
+        position: absolute;
+        inset: calc(100% + 6px) 0 auto 0;
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 16px;
+        box-shadow: 0 18px 35px rgba(15, 23, 42, 0.12);
+        z-index: 1056;
+        display: none;
+        max-height: 340px;
+        overflow-y: auto;
+    }
+    .search-suggest-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 14px;
+        text-decoration: none;
+        color: #111827;
+        border-bottom: 1px solid #f3f4f6;
+    }
+    .search-suggest-item:last-child {
+        border-bottom: 0;
+    }
+    .search-suggest-item:hover {
+        background: #fff7ed;
+        color: #ea580c;
+    }
+    .search-suggest-item img {
+        width: 52px;
+        height: 52px;
+        object-fit: cover;
+        border-radius: 12px;
+    }
 </style>
 
 <body>
@@ -105,15 +145,12 @@
                 </div>
                 <div class="top-link pe-2">
                     <a href="#" class="text-white"><small class="text-white mx-2">
-
-                        <?php
-                                $name = session()->get('name_acoutn');
-                                if ($name) {
-                                    echo 'Tài Khoản: ', $name;
-                                }
-                        ?>
-                        </small></a>
-
+                        @if($layoutUserName)
+                            Tài Khoản: {{ $layoutUserName }}
+                        @else
+                            Chào mừng bạn đến với HiusBlack Foods
+                        @endif
+                    </small></a>
                 </div>
             </div>
         </div>
@@ -149,10 +186,7 @@
                             <span
                                 class="position-absolute bg-secondary rounded-circle d-flex align-items-center justify-content-center text-dark px-1"
                                 style="top: -5px; left: 15px; height: 20px; min-width: 20px;">
-                                <?php
-                                    $thongbao = session()->get('thongbao');
-                                    echo $thongbao;
-                                ?>
+                                {{ $layoutNotificationCount }}
                             </span>
                         </a>
                         <button
@@ -164,14 +198,22 @@
 
                             <span
                                 class="position-absolute bg-secondary rounded-circle d-flex align-items-center justify-content-center text-dark px-1"
-                                style="top: -5px; left: 15px; height: 20px; min-width: 20px;"></span>
+                                style="top: -5px; left: 15px; height: 20px; min-width: 20px;">{{ $layoutCartCount }}</span>
                         </a>
 
 
                         <div class="nav-item dropdown">
-                            <a href="{{URL::to('/dang-nhap-dang-ky')}}" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" class="my-auto" style="color: red"><i class="fas fa-user fa-2x"></i></a>
+                            <a href="{{ Auth::check() ? URL::to('/user-thong-tin') : URL::to('/dang-nhap-dang-ky') }}" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" class="my-auto" style="color: red"><i class="fas fa-user fa-2x"></i></a>
                             <div class="dropdown-menu m-0 bg-secondary rounded-0">
-                                <a href="{{URL::to('/user-dang-xuat')}}" class="dropdown-item">Đăng xuất</a>
+                                @if(Auth::check())
+                                    <a href="{{URL::to('/user-thong-tin')}}" class="dropdown-item">Thông tin tài khoản</a>
+                                    <a href="{{URL::to('/user-doi-mat-khau')}}" class="dropdown-item">Đổi mật khẩu</a>
+                                    <a href="{{URL::to('/lich-su-dat-hang')}}" class="dropdown-item">Lịch sử đặt hàng</a>
+                                    <a href="{{URL::to('/user-dang-xuat')}}" class="dropdown-item">Đăng xuất</a>
+                                @else
+                                    <a href="{{URL::to('/dang-nhap-dang-ky')}}" class="dropdown-item">Đăng nhập / đăng ký</a>
+                                    <a href="{{URL::to('/quen-mat-khau')}}" class="dropdown-item">Quên mật khẩu</a>
+                                @endif
                             </div>
                         </div>
                         </a>
@@ -192,10 +234,13 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body d-flex align-items-center">
-                    <div class="input-group w-75 mx-auto d-flex">
-                        <input type="search" class="form-control p-3" placeholder="từ khóa"
-                            aria-describedby="search-icon-1">
-                        <span id="search-icon-1" class="input-group-text p-3"><i class="fa fa-search"></i></span>
+                    <div class="input-group w-75 mx-auto d-flex position-relative">
+                        <form action="{{ url('/san-pham') }}" method="GET" class="w-100 d-flex position-relative">
+                            <input type="search" class="form-control p-3 product-suggest-input" placeholder="Nhập tên sản phẩm..."
+                                aria-describedby="search-icon-1" name="q" autocomplete="off">
+                            <button id="search-icon-1" class="input-group-text p-3 border-0 bg-primary text-white" type="submit"><i class="fa fa-search"></i></button>
+                            <div class="search-suggest-box"></div>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -211,22 +256,11 @@
     @yield('contact')
     @yield('detail_oder')
     @yield('order_detail')
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    @yield('thong_bao')
+    @yield('edit_accoutn_user')
+    @yield('edit_password_user')
+    @yield('forgot_password')
+    @yield('reset_password')
     <!-- Footer Start -->
     <div class="container-fluid bg-dark text-white-50 footer pt-5 mt-5">
         <div class="container py-5">
@@ -336,6 +370,53 @@
     <!-- Template Javascript -->
     <script src="{{asset('fontend/js/main.js')}}"></script>
     <script src="{{asset('fontend/js/jsAccoutn.js')}}"></script>
+    <script>
+        document.querySelectorAll('.product-suggest-input').forEach(function (input) {
+            var wrapper = input.closest('form');
+            var suggestBox = wrapper ? wrapper.querySelector('.search-suggest-box') : null;
+
+            if (!suggestBox) {
+                return;
+            }
+
+            input.addEventListener('input', function () {
+                var keyword = input.value.trim();
+
+                if (keyword.length < 2) {
+                    suggestBox.style.display = 'none';
+                    suggestBox.innerHTML = '';
+                    return;
+                }
+
+                fetch('/goi-y-san-pham?q=' + encodeURIComponent(keyword))
+                    .then(function (response) { return response.json(); })
+                    .then(function (items) {
+                        if (!items.length) {
+                            suggestBox.innerHTML = '<div class="p-3 text-muted">Không tìm thấy sản phẩm phù hợp.</div>';
+                            suggestBox.style.display = 'block';
+                            return;
+                        }
+
+                        suggestBox.innerHTML = items.map(function (item) {
+                            return '<a class="search-suggest-item" href="/chi-tiet-san-pham/' + item.product_id + '">' +
+                                '<img src="/upload/product/' + item.product_image + '" alt="">' +
+                                '<div><div class="fw-bold">' + item.product_name + '</div><small>' + Number(item.product_price).toLocaleString("vi-VN") + 'đ</small></div>' +
+                            '</a>';
+                        }).join('');
+                        suggestBox.style.display = 'block';
+                    })
+                    .catch(function () {
+                        suggestBox.style.display = 'none';
+                    });
+            });
+
+            document.addEventListener('click', function (event) {
+                if (!wrapper.contains(event.target)) {
+                    suggestBox.style.display = 'none';
+                }
+            });
+        });
+    </script>
 
 </body>
 

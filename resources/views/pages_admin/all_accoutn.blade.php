@@ -8,6 +8,9 @@
             @if(session('message'))
                 <span class='message_category'>{{ session('message') }}</span>
             @endif
+            <div class="mt-3">
+                <a href="{{ url('/add-accoutn') }}" class="btn btn-primary btn-sm">Thêm tài khoản</a>
+            </div>
         </div>
         <div class="card-body">
             <div class="table-responsive">

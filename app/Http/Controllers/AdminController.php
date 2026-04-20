@@ -11,10 +11,15 @@ class AdminController extends Controller
 {
     private function buildDashboardStats()
     {
-        $completedRevenue = (int) DB::table('tbl_order_main')->where('status', 4)->sum('total');
+        $orderedRevenue = (int) DB::table('tbl_order_main')->sum('total');
+        $deliveredRevenue = (int) DB::table('tbl_order_main')->where('status', 4)->sum('total');
+        $cancelledRevenue = (int) DB::table('tbl_order_main')->where('status', 5)->sum('total');
+
         $revenueByDay = DB::table('tbl_order_main')
-            ->selectRaw('DATE(created_at) as label, COALESCE(SUM(total), 0) as amount')
-            ->where('status', 4)
+            ->selectRaw('DATE(created_at) as label')
+            ->selectRaw('COALESCE(SUM(total), 0) as ordered_amount')
+            ->selectRaw('COALESCE(SUM(CASE WHEN status = 4 THEN total ELSE 0 END), 0) as delivered_amount')
+            ->selectRaw('COALESCE(SUM(CASE WHEN status = 5 THEN total ELSE 0 END), 0) as cancelled_amount')
             ->groupByRaw('DATE(created_at)')
             ->orderByRaw('DATE(created_at) asc')
             ->limit(10)
@@ -52,15 +57,24 @@ class AdminController extends Controller
 
         $lowStockProducts = DB::table('tbl_product')
             ->whereNull('deleted_at')
-            ->where('stock_quantity', '<=', 5)
+            ->where('stock_quantity', '<', 10)
             ->orderBy('stock_quantity')
-            ->limit(5)
+            ->get();
+
+        $highStockProducts = DB::table('tbl_product')
+            ->whereNull('deleted_at')
+            ->where('stock_quantity', '>=', 10)
+            ->orderByDesc('stock_quantity')
             ->get();
 
         return [
-            'completedRevenue' => $completedRevenue,
+            'orderedRevenue' => $orderedRevenue,
+            'deliveredRevenue' => $deliveredRevenue,
+            'cancelledRevenue' => $cancelledRevenue,
             'totalOrders' => (int) DB::table('tbl_order_main')->count(),
             'pendingOrders' => (int) ($ordersByStatus[0] ?? 0),
+            'confirmedOrders' => (int) ($ordersByStatus[1] ?? 0),
+            'preparingOrders' => (int) ($ordersByStatus[2] ?? 0),
             'shippingOrders' => (int) ($ordersByStatus[3] ?? 0),
             'completedOrders' => (int) ($ordersByStatus[4] ?? 0),
             'cancelledOrders' => (int) ($ordersByStatus[5] ?? 0),
@@ -72,6 +86,7 @@ class AdminController extends Controller
             'couponStats' => $couponStats,
             'revenueByDay' => $revenueByDay,
             'lowStockProducts' => $lowStockProducts,
+            'highStockProducts' => $highStockProducts,
         ];
     }
 
@@ -193,20 +208,32 @@ class AdminController extends Controller
     public function thong_ke_doanh_thu()
     {
         $stats = $this->buildDashboardStats();
+        $byDay = DB::table('tbl_order_main')
+            ->selectRaw('DATE(created_at) as label')
+            ->selectRaw('COALESCE(SUM(total), 0) as ordered_amount')
+            ->selectRaw('COALESCE(SUM(CASE WHEN status = 4 THEN total ELSE 0 END), 0) as delivered_amount')
+            ->selectRaw('COALESCE(SUM(CASE WHEN status = 5 THEN total ELSE 0 END), 0) as cancelled_amount')
+            ->groupByRaw('DATE(created_at)')
+            ->orderByRaw('DATE(created_at) asc')
+            ->get();
         $byMonth = DB::table('tbl_order_main')
-            ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as label, COALESCE(SUM(total), 0) as amount")
-            ->where('status', 4)
+            ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as label")
+            ->selectRaw('COALESCE(SUM(total), 0) as ordered_amount')
+            ->selectRaw('COALESCE(SUM(CASE WHEN status = 4 THEN total ELSE 0 END), 0) as delivered_amount')
+            ->selectRaw('COALESCE(SUM(CASE WHEN status = 5 THEN total ELSE 0 END), 0) as cancelled_amount')
             ->groupByRaw("DATE_FORMAT(created_at, '%Y-%m')")
             ->orderByRaw("DATE_FORMAT(created_at, '%Y-%m') asc")
             ->get();
         $byYear = DB::table('tbl_order_main')
-            ->selectRaw('YEAR(created_at) as label, COALESCE(SUM(total), 0) as amount')
-            ->where('status', 4)
+            ->selectRaw('YEAR(created_at) as label')
+            ->selectRaw('COALESCE(SUM(total), 0) as ordered_amount')
+            ->selectRaw('COALESCE(SUM(CASE WHEN status = 4 THEN total ELSE 0 END), 0) as delivered_amount')
+            ->selectRaw('COALESCE(SUM(CASE WHEN status = 5 THEN total ELSE 0 END), 0) as cancelled_amount')
             ->groupByRaw('YEAR(created_at)')
             ->orderByRaw('YEAR(created_at) asc')
             ->get();
 
-        return view('pages_admin.all_statistics_revenue', compact('stats', 'byMonth', 'byYear'));
+        return view('pages_admin.all_statistics_revenue', compact('stats', 'byDay', 'byMonth', 'byYear'));
     }
 
     public function thong_ke_don_hang()

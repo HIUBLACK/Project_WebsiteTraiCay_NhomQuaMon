@@ -9,15 +9,105 @@ use Illuminate\Support\Facades\Session;
 
 class ProductController extends Controller
 {
-    public function product()
+    private function resolveProductStatus(int $stockQuantity, ?int $requestedStatus = 1): int
+    {
+        if ($stockQuantity <= 0) {
+            return 0;
+        }
+
+        return (int) ($requestedStatus ?? 1);
+    }
+
+    private function buildProductCatalogQuery(Request $request)
+    {
+        $salesSub = DB::table('tbl_oder')
+            ->leftJoin('tbl_order_main', 'tbl_oder.order_id', '=', 'tbl_order_main.order_id')
+            ->select(
+                'tbl_oder.oder_id_product',
+                DB::raw('COALESCE(SUM(CASE WHEN tbl_order_main.status != 5 THEN tbl_oder.oder_soluong ELSE 0 END), 0) as total_sold'),
+                DB::raw('COUNT(DISTINCT CASE WHEN tbl_order_main.status != 5 THEN tbl_order_main.order_id END) as total_orders')
+            )
+            ->groupBy('tbl_oder.oder_id_product');
+
+        $query = DB::table('tbl_product')
+            ->leftJoinSub($salesSub, 'sales_stats', function ($join) {
+                $join->on('tbl_product.product_id', '=', 'sales_stats.oder_id_product');
+            })
+            ->whereNull('tbl_product.deleted_at')
+            ->where('tbl_product.product_status', 1)
+            ->where('tbl_product.stock_quantity', '>', 0)
+            ->select(
+                'tbl_product.*',
+                DB::raw('COALESCE(sales_stats.total_sold, 0) as total_sold'),
+                DB::raw('COALESCE(sales_stats.total_orders, 0) as total_orders')
+            );
+
+        $search = trim((string) $request->query('q', ''));
+        if ($search !== '') {
+            $query->where(function ($inner) use ($search) {
+                $inner->where('tbl_product.product_name', 'like', '%' . $search . '%')
+                    ->orWhere('tbl_product.product_desc', 'like', '%' . $search . '%')
+                    ->orWhere('tbl_product.product_content', 'like', '%' . $search . '%');
+            });
+        }
+
+        $categories = collect((array) $request->query('categories', []))
+            ->filter(fn ($value) => is_numeric($value))
+            ->map(fn ($value) => (int) $value)
+            ->unique()
+            ->values()
+            ->all();
+
+        if (count($categories) > 0) {
+            $query->whereIn('tbl_product.category_id', $categories);
+        }
+
+        $minPrice = $request->query('min_price');
+        if ($minPrice !== null && $minPrice !== '') {
+            $query->where('tbl_product.product_price', '>=', (int) $minPrice);
+        }
+
+        $maxPrice = $request->query('max_price');
+        if ($maxPrice !== null && $maxPrice !== '') {
+            $query->where('tbl_product.product_price', '<=', (int) $maxPrice);
+        }
+
+        $sort = $request->query('sort');
+        if ($sort === 'popular') {
+            $query->orderByDesc('total_orders')->orderByDesc('total_sold')->orderByDesc('tbl_product.product_id');
+        } elseif ($sort === 'best_selling') {
+            $query->orderByDesc('total_sold')->orderByDesc('total_orders')->orderByDesc('tbl_product.product_id');
+        } elseif ($sort === 'price_asc') {
+            $query->orderBy('tbl_product.product_price');
+        } elseif ($sort === 'price_desc') {
+            $query->orderByDesc('tbl_product.product_price');
+        } else {
+            $query->orderByDesc('tbl_product.product_id');
+        }
+
+        return $query;
+    }
+
+    public function product(Request $request)
     {
         $all_category_product = DB::table('tbl_category_product')->where('category_status', 1)->get();
-        $all_product = DB::table('tbl_product')
-            ->whereNull('deleted_at')
-            ->where('product_status', 1)
-            ->paginate(6);
-
-        return view('pages.product', compact('all_category_product', 'all_product'));
+        //$all_product = $this->buildProductCatalogQuery($request)->paginate(9)->withQueryString();
+        $all_product = $this->buildProductCatalogQuery($request)->paginate(9);
+        return view('pages.product', [
+            'all_category_product' => $all_category_product,
+            'all_product' => $all_product,
+            'selectedCategories' => collect((array) $request->query('categories', []))
+                ->filter(fn ($value) => is_numeric($value))
+                ->map(fn ($value) => (int) $value)
+                ->values()
+                ->all(),
+            'filters' => [
+                'q' => $request->query('q'),
+                'sort' => $request->query('sort'),
+                'min_price' => $request->query('min_price'),
+                'max_price' => $request->query('max_price'),
+            ],
+        ]);
     }
 
     public function product_detail($product_id)
@@ -26,17 +116,20 @@ class ProductController extends Controller
             ->where('product_id', $product_id)
             ->whereNull('deleted_at')
             ->where('product_status', 1)
+            ->where('stock_quantity', '>', 0)
             ->get();
 
         $all_product2 = DB::table('tbl_product')
             ->whereNull('deleted_at')
             ->where('product_status', 1)
+            ->where('stock_quantity', '>', 0)
             ->take(3)
             ->get();
 
         $all_product3 = DB::table('tbl_product')
             ->whereNull('deleted_at')
             ->where('product_status', 1)
+            ->where('stock_quantity', '>', 0)
             ->get();
 
         $manager_product = view('pages.product_detail')
@@ -49,6 +142,15 @@ class ProductController extends Controller
 
     public function all_product()
     {
+        DB::table('tbl_product')
+            ->whereNull('deleted_at')
+            ->where('stock_quantity', '<=', 0)
+            ->where('product_status', '!=', 0)
+            ->update([
+                'product_status' => 0,
+                'updated_at' => now(),
+            ]);
+
         $all_product = DB::table('tbl_product')
             ->join('tbl_category_product', 'tbl_product.category_id', '=', 'tbl_category_product.category_id')
             ->whereNull('tbl_product.deleted_at')
@@ -85,7 +187,7 @@ class ProductController extends Controller
             'product_content' => $request->product_content,
             'product_price' => $request->product_price,
             'stock_quantity' => $request->stock_quantity,
-            'product_status' => 1,
+            'product_status' => $this->resolveProductStatus((int) $request->stock_quantity, 1),
             'category_id' => $request->category_product,
             'brand_id' => 1,
             'product_image' => '',
@@ -101,7 +203,7 @@ class ProductController extends Controller
         }
 
         DB::table('tbl_product')->insert($data);
-        Session::put('message', 'Thêm sản phẩm thành công');
+
 
         return redirect('all-sanpham');
     }
@@ -143,7 +245,7 @@ class ProductController extends Controller
             'stock_quantity' => $request->stock_quantity,
             'product_desc' => $request->product_desc,
             'product_content' => $request->product_content,
-            'product_status' => $request->product_status,
+            'product_status' => $this->resolveProductStatus((int) $request->stock_quantity, (int) $request->product_status),
             'category_id' => $request->category_product,
             'updated_at' => now(),
         ];
@@ -196,8 +298,29 @@ class ProductController extends Controller
         $products = Product::where('category_id', $category_id)
             ->whereNull('deleted_at')
             ->where('product_status', 1)
+            ->where('stock_quantity', '>', 0)
             ->get();
 
         return view('pages.product_list', compact('products'));
+    }
+
+    public function product_suggestions(Request $request)
+    {
+        $keyword = trim((string) $request->query('q', ''));
+
+        if ($keyword === '') {
+            return response()->json([]);
+        }
+
+        $products = DB::table('tbl_product')
+            ->whereNull('deleted_at')
+            ->where('product_status', 1)
+            ->where('stock_quantity', '>', 0)
+            ->where('product_name', 'like', '%' . $keyword . '%')
+            ->orderByDesc('product_id')
+            ->limit(8)
+            ->get(['product_id', 'product_name', 'product_price', 'product_image']);
+
+        return response()->json($products);
     }
 }

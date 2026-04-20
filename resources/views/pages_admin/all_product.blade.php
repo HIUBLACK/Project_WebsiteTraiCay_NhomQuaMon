@@ -38,16 +38,26 @@
                     </thead>
                     <tbody>
                         @foreach ($all_product as $pro)
+                        @php
+                            $displayStatus = (int) $pro->stock_quantity <= 0 ? 0 : (int) $pro->product_status;
+                        @endphp
                         <tr>
                             <td>{{ $pro->product_name }}</td>
                             <td>{{ $pro->category_name }}</td>
                             <td><img src="upload/product/{{$pro->product_image}}" width="100" height="100"></td>
                             <td>{{ $pro->created_at }}</td>
                             <td>{{ number_format($pro->product_price) }}đ</td>
-                            <td>{{ $pro->stock_quantity }}</td>
                             <td>
-                                <span class="badge {{ $pro->product_status == 1 ? 'badge-success' : 'badge-secondary' }}">
-                                    {{ $pro->product_status == 1 ? 'Hiện' : 'Ẩn' }}
+                                <strong>{{ $pro->stock_quantity }}</strong>
+                                @if((int) $pro->stock_quantity === 0)
+                                    <div><small class="text-danger">Hết hàng, tự động ẩn</small></div>
+                                @elseif((int) $pro->stock_quantity < 10)
+                                    <div><small class="text-warning">Tồn kho thấp</small></div>
+                                @endif
+                            </td>
+                            <td>
+                                <span class="badge {{ $displayStatus == 1 ? 'badge-success' : 'badge-secondary' }}">
+                                    {{ $displayStatus == 1 ? 'Hiện' : 'Ẩn' }}
                                 </span>
                             </td>
                             <td>

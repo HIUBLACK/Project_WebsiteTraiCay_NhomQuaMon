@@ -8,6 +8,33 @@ use Illuminate\Support\Facades\DB;
 
 class OderController extends Controller
 {
+    private function syncProductStatusAfterStockRestore(int $productId)
+    {
+        $product = DB::table('tbl_product')->where('product_id', $productId)->first();
+
+        if ($product && (int) $product->stock_quantity > 0 && (int) $product->product_status === 0) {
+            DB::table('tbl_product')->where('product_id', $productId)->update([
+                'product_status' => 1,
+                'updated_at' => now(),
+            ]);
+        }
+    }
+
+    private function restoreOrderStock(int $orderId)
+    {
+        $items = DB::table('tbl_oder')
+            ->where('order_id', $orderId)
+            ->get();
+
+        foreach ($items as $item) {
+            DB::table('tbl_product')
+                ->where('product_id', $item->oder_id_product)
+                ->increment('stock_quantity', $item->oder_soluong);
+
+            $this->syncProductStatusAfterStockRestore((int) $item->oder_id_product);
+        }
+    }
+
     private function orderStatusLabels()
     {
         return [
@@ -54,18 +81,28 @@ class OderController extends Controller
 
     private function updateOrderAndItemsStatus(int $orderId, int $status)
     {
-        DB::table('tbl_order_main')
-            ->where('order_id', $orderId)
-            ->update([
-                'status' => $status,
-            ]);
+        DB::transaction(function () use ($orderId, $status) {
+            $order = DB::table('tbl_order_main')->where('order_id', $orderId)->first();
 
-        DB::table('tbl_oder')
-            ->where('order_id', $orderId)
-            ->update([
-                'oder_status' => $status,
-                'updated_at' => now(),
-            ]);
+            $updateData = [
+                'status' => $status,
+            ];
+
+            if ($order && $status === 4 && $order->payment_method === 'cod' && (int) $order->payment_status === 0) {
+                $updateData['payment_status'] = 1;
+            }
+
+            DB::table('tbl_order_main')
+                ->where('order_id', $orderId)
+                ->update($updateData);
+
+            DB::table('tbl_oder')
+                ->where('order_id', $orderId)
+                ->update([
+                    'oder_status' => $status,
+                    'updated_at' => now(),
+                ]);
+        });
     }
 
     private function cancelOrderRecord($order, string $reason)
@@ -99,6 +136,8 @@ class OderController extends Controller
                     'oder_status' => 5,
                     'updated_at' => now(),
                 ]);
+
+            $this->restoreOrderStock((int) $order->order_id);
         });
 
         return null;

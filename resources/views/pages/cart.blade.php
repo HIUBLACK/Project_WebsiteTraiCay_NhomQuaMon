@@ -16,6 +16,12 @@
 <!-- Cart Page Start -->
 <div class="container-fluid py-5">
     <div class="container py-5">
+        @if (session('error'))
+            <div class="alert alert-danger">{{ session('error') }}</div>
+        @endif
+        @if (session('message'))
+            <div class="alert alert-success">{{ session('message') }}</div>
+        @endif
         <div class="table-responsive">
             <table class="table">
                 <thead>
@@ -53,13 +59,14 @@
                                     <i class="fa fa-minus"></i>
                                     </button>
                                 </div>
-                                <input type="text" class="form-control form-control-sm text-center border-0" name="soluong" value="{{$pro->oder_soluong}}">
+                                <input type="number" min="1" max="{{ $pro->stock_quantity }}" class="form-control form-control-sm text-center border-0" name="soluong" value="{{$pro->oder_soluong}}">
                                 <div class="input-group-btn">
                                     <button class="btn btn-sm btn-plus rounded-circle bg-light border" name="action" value="tang">
                                         <i class="fa fa-plus"></i>
                                     </button>
                                 </div>
                             </div>
+                            <small class="text-muted d-block mt-2">Tồn kho: {{ $pro->stock_quantity }}</small>
                         </td>
                         </form>
 

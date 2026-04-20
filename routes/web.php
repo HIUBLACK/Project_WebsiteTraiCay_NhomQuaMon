@@ -26,6 +26,12 @@ Route::get('/san-pham', 'App\Http\Controllers\ProductController@product');
 // Route::get('/san-pham', 'App\Http\Controllers\ProductController@user_product');
 Route::get('/chi-tiet-san-pham/{product_id}', 'App\Http\Controllers\ProductController@product_detail');
 Route::get('/dang-nhap-dang-ky', 'App\Http\Controllers\HomeController@accoutn');
+Route::get('/quen-mat-khau', 'App\Http\Controllers\AccoutnController@show_forgot_password_form');
+Route::post('/quen-mat-khau', 'App\Http\Controllers\AccoutnController@send_reset_password_otp');
+Route::get('/dat-lai-mat-khau', 'App\Http\Controllers\AccoutnController@show_reset_password_form');
+Route::post('/dat-lai-mat-khau', 'App\Http\Controllers\AccoutnController@reset_password_with_otp');
+Route::get('/auth/google', 'App\Http\Controllers\HomeController@google_redirect');
+Route::get('/auth/google/callback', 'App\Http\Controllers\HomeController@google_callback');
 Route::post('/them-gio-hang/{product_id}', 'App\Http\Controllers\HomeController@cart');
 Route::get('/gio-hang', 'App\Http\Controllers\HomeController@gio_hang');
 
@@ -105,6 +111,7 @@ Route::get('/vnpay-return', 'App\Http\Controllers\CheckOutController@vnpay_retur
 
 //Phân sản phẩm theo danh mục
 Route::get('/san-pham-theo-danh-muc/{category_id}', 'App\Http\Controllers\ProductController@san_pham_theo_danh_muc');
+Route::get('/goi-y-san-pham', 'App\Http\Controllers\ProductController@product_suggestions');
 
 //xóa sản phẩm
 Route::get('/delete-product/{product_id}', 'App\Http\Controllers\ProductController@delete_product');
@@ -145,6 +152,12 @@ Route::post('/apply-coupon', 'App\Http\Controllers\CheckOutController@apply_coup
 Route::get('/remove-coupon/{coupon_id}', 'App\Http\Controllers\CheckOutController@remove_coupon');
 Route::get('/chi-tiet-don/{id}','App\Http\Controllers\OderController@chi_tiet_don');
 Route::post('/huy-don/{id}', 'App\Http\Controllers\OderController@huy_don');
+    //Thông tin tài khoản
+Route::get('/user-thong-tin', 'App\Http\Controllers\AccoutnController@user_thong_tin');
+Route::get('/user-doi-mat-khau', 'App\Http\Controllers\AccoutnController@user_doi_mat_khau');
+Route::post('/user-update-thong-tin', 'App\Http\Controllers\AccoutnController@user_update_thong_tin');
+Route::post('/user-update-mat-khau', 'App\Http\Controllers\AccoutnController@user_update_mat_khau');
+
 //Xếp hạng người dùng
 Route::get('/all-rank-user', 'App\Http\Controllers\AdminController@xep_hang_nguoi_dung');
 

@@ -467,6 +467,7 @@
 @yield('all_oder')
 @yield('all_accoutn')
 @yield('edit_accoutn')
+@yield('add_accoutn')
 @yield('edit_product')
 @yield('add_product')
 @yield('all_product')
@@ -547,42 +548,69 @@
     <script src="{{asset('backend/vendor/chart.js/Chart.min.js')}}"></script>
 
     <!-- Page level custom scripts -->
-    <script src="{{asset('backend/js/demo/chart-area-demo.js')}}"></script>
-    <script src="{{asset('backend/js/demo/chart-pie-demo.js')}}"></script>
-    <script>
-document.getElementById('product_image').addEventListener('change', function (e) {
-    const file = e.target.files[0];
-    if (file) {
-        // Hiển thị tên ảnh
-        document.getElementById('image-name').textContent = file.name;
+<script src="{{asset('backend/js/demo/chart-area-demo.js')}}"></script>
+<script src="{{asset('backend/js/demo/chart-pie-demo.js')}}"></script>
+<script>
+var productImageInput = document.getElementById('product_image');
+if (productImageInput) {
+    productImageInput.addEventListener('change', function (e) {
+        const file = e.target.files[0];
+        if (file) {
+            var imageName = document.getElementById('image-name');
+            var previewImage = document.getElementById('preview-image');
 
-        // Đọc và hiển thị ảnh
-        const reader = new FileReader();
-        reader.onload = function (event) {
-            document.getElementById('preview-image').src = event.target.result;
-        };
-        reader.readAsDataURL(file);
-    }
-});
+            if (imageName) {
+                imageName.textContent = file.name;
+            }
+
+            if (previewImage) {
+                const reader = new FileReader();
+                reader.onload = function (event) {
+                    previewImage.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+    });
+}
 </script>
 <script>
-document.getElementById('coupon_scope').addEventListener('change', function(){
-    document.getElementById('product-table').style.display =
-        this.value == 2 ? 'block' : 'none';
-});
+var couponScope = document.getElementById('coupon_scope');
+var checkAll = document.getElementById('check_all');
+var couponValue = document.getElementById('coupon_value');
+var couponType = document.getElementById('coupon_type');
 
-document.getElementById('check_all').addEventListener('change', function(){
-    document.querySelectorAll('input[name="product_ids[]"]').forEach(cb => {
-        cb.checked = this.checked;
+if (couponScope) {
+    couponScope.addEventListener('change', function(){
+        var productTable = document.getElementById('product-table');
+        if (productTable) {
+            productTable.style.display = this.value == 2 ? 'block' : 'none';
+        }
     });
-});
+}
 
-document.getElementById('coupon_value').addEventListener('input', updatePrice);
-document.getElementById('coupon_type').addEventListener('change', updatePrice);
+if (checkAll) {
+    checkAll.addEventListener('change', function(){
+        document.querySelectorAll('input[name="product_ids[]"]').forEach(cb => {
+            cb.checked = this.checked;
+        });
+    });
+}
+
+if (couponValue && couponType) {
+    couponValue.addEventListener('input', updatePrice);
+    couponType.addEventListener('change', updatePrice);
+}
 
 function updatePrice(){
-    let value = document.getElementById('coupon_value').value || 0;
-    let type = document.getElementById('coupon_type').value;
+    let value = document.getElementById('coupon_value');
+    let type = document.getElementById('coupon_type');
+
+    if (!value || !type) {
+        return;
+    }
+    value = value.value || 0;
+    type = type.value;
 
     document.querySelectorAll('.preview-price').forEach(el=>{
         let price = el.dataset.price;

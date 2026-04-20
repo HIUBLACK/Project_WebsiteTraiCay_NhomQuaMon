@@ -1,42 +1,39 @@
-<div class="row g-4 justify-content-center">
+<div class="row g-4">
     @forelse ($products as $pro)
-
-        <div class="col-md-6 col-lg-6 col-xl-4">
-            <form method="POST" action="{{ url('/them-gio-hang/' . $pro->product_id) }}">
-                {{ csrf_field() }}
-                <a href="{{URL::to('/chi-tiet-san-pham/'.$pro->product_id)}}">
-                <div class="rounded position-relative fruite-item" >
-
-                    <div class="fruite-img">
-                        <img src="{{ asset('upload/product/' . $pro->product_image) }}" class="img-fluid w-100 rounded-top"
-                            alt="" style="width: 306px; height:306px; object-fit: fill;">
+        <div class="col-md-6 col-xl-4">
+            <div class="shop-table-card h-100">
+                <div class="position-relative">
+                    <a href="{{ url('/chi-tiet-san-pham/'.$pro->product_id) }}">
+                        <img src="{{ asset('upload/product/' . $pro->product_image) }}" class="img-fluid w-100" alt=""
+                            style="height: 260px; object-fit: cover;">
+                    </a>
+                    <span class="badge bg-danger position-absolute" style="top: 14px; left: 14px;">Còn {{ $pro->stock_quantity }}</span>
+                </div>
+                <div class="p-4">
+                    <h5 class="mb-2" id="gh_chu_ten_san_pham">{{ $pro->product_name }}</h5>
+                    <p class="text-muted mb-3" id="gh_chu">{{ $pro->product_desc }}</p>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <div class="fw-bold text-danger fs-5">{{ number_format($pro->product_price) }}đ/kg</div>
+                            <small class="text-muted">Đã bán: {{ number_format($pro->total_sold ?? 0) }}</small>
+                        </div>
                     </div>
-                    {{-- @foreach ($all_category_product as $key => $cate_pro) --}}
-                        <div class="text-white bg-secondary px-3 py-1 rounded position-absolute" style="top: 10px; left: 10px;">
-                            {{-- @if ($cate_pro->category_id == $pro->category_id)
-                                <p>{{$cate_pro->category_name}}</p>
-                            @else
-                            @endif --}}
-                        </div>
-                    {{-- @endforeach --}}
-                    <div class="p-4 border border-secondary border-top-0 rounded-bottom">
-                        <h4 id="gh_chu_ten_san_pham">{{ $pro->product_name }}</h4>
-                        <p id='gh_chu'>{{ $pro->product_desc }}</p>
-                        <div class="d-flex justify-content-between flex-lg-wrap">
-                            <p class="text-dark fs-5 fw-bold mb-0">{{ number_format($pro->product_price) }}đ</p>
-                            <button type="submit" class="btn border border-secondary rounded-pill px-3 text-primary">
-                                <i class="fa fa-shopping-bag me-2 text-primary"></i>Thêm vào giỏ
-                            </button>
-                        </div>
+                    <div class="d-flex gap-2">
+                        <a href="{{ url('/chi-tiet-san-pham/'.$pro->product_id) }}" class="btn btn-light rounded-pill flex-fill">Xem chi tiết</a>
+                        <form method="POST" action="{{ url('/them-gio-hang/' . $pro->product_id) }}" class="flex-fill">
+                            @csrf
+                            <button type="submit" class="btn btn-primary rounded-pill w-100">Thêm vào giỏ</button>
+                        </form>
                     </div>
                 </div>
-                </a>
-            </form>
+            </div>
         </div>
-
-
     @empty
-        <p class="text-center">Không có sản phẩm nào.</p>
+        <div class="col-12">
+            <div class="shop-table-card p-5 text-center">
+                <h4>Không có sản phẩm phù hợp</h4>
+                <p class="text-muted mb-0">Hãy thử đổi từ khóa tìm kiếm, danh mục hoặc khoảng giá.</p>
+            </div>
+        </div>
     @endforelse
-
 </div>

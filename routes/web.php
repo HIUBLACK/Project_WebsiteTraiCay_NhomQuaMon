@@ -38,6 +38,7 @@ Route::get('/admin', 'App\Http\Controllers\AdminController@admin_login');
 Route::get('/admin-dang-nhap', 'App\Http\Controllers\AdminController@admin_login');
 Route::get('/admin-trang-chu', 'App\Http\Controllers\AdminController@admin_dashboard');
 Route::get('/admin-dang-ky', 'App\Http\Controllers\AdminController@admin_register');
+Route::post('/admin-tao-tai-khoan', 'App\Http\Controllers\AdminController@admin_register_save');
 
 //-----------------------------------ADMIN---------------------------------------------
 //ADMIN DANH SÁCH TÀI KHOẢN
@@ -131,6 +132,10 @@ Route::get('/add-coupon', 'App\Http\Controllers\CouponController@add_coupon');
 Route::post('/save-coupon', 'App\Http\Controllers\CouponController@save_coupon');
 Route::get('/all-coupon', 'App\Http\Controllers\CouponController@all_coupon');
 Route::get('/delete-coupon/{id}', 'App\Http\Controllers\CouponController@delete_coupon');
+    //Sửa tài khoản
+Route::get('/edit-accoutn/{id}', 'App\Http\Controllers\AccoutnController@edit_accoutn');
+Route::post('/update-accoutn/{id}', 'App\Http\Controllers\AccoutnController@update_accoutn');
+
 
 // USER
 Route::post('/apply-coupon', 'App\Http\Controllers\CheckOutController@apply_coupon');
@@ -139,3 +144,10 @@ Route::get('/chi-tiet-don/{id}','App\Http\Controllers\OderController@chi_tiet_do
 Route::post('/huy-don/{id}', 'App\Http\Controllers\OderController@huy_don');
 //Xếp hạng người dùng
 Route::get('/all-rank-user', 'App\Http\Controllers\AdminController@xep_hang_nguoi_dung');
+
+//Thống kê
+Route::get('/all-statistics-revenue', 'App\Http\Controllers\AdminController@thong_ke_doanh_thu');
+Route::get('/all-statistics-order', 'App\Http\Controllers\AdminController@thong_ke_don_hang');
+Route::get('/all-statistics-product', 'App\Http\Controllers\AdminController@thong_ke_san_pham');
+Route::get('/all-statistics-customer', 'App\Http\Controllers\AdminController@thong_ke_khach_hang');
+Route::get('/all-statistics-coupon', 'App\Http\Controllers\AdminController@thong_ke_khuyen_mai');

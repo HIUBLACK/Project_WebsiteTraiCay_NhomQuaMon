@@ -11,6 +11,30 @@
         </div>
 
         <div class="card-body">
+            <form method="GET" action="{{ url('/all-oder') }}" class="row mb-3">
+                <div class="col-md-3">
+                    <select name="status" class="form-control">
+                        <option value="">Tất cả trạng thái đơn</option>
+                        @foreach($orderStatusLabels as $key => $label)
+                            <option value="{{ $key }}" {{ (string) ($filters['status'] ?? '') === (string) $key ? 'selected' : '' }}>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select name="payment_status" class="form-control">
+                        <option value="">Tất cả trạng thái thanh toán</option>
+                        @foreach($paymentStatusLabels as $key => $label)
+                            <option value="{{ $key }}" {{ (string) ($filters['payment_status'] ?? '') === (string) $key ? 'selected' : '' }}>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <input type="date" name="date" class="form-control" value="{{ $filters['date'] ?? '' }}">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary">Lọc</button>
+                </div>
+            </form>
             <div class="table-responsive">
                 <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
                     <thead>
@@ -39,9 +63,26 @@
                             <td>{{ number_format($order->total) }}đ</td>
                             <td>
                                 {{ $order->payment_method == 'vnpay' ? 'VNPay' : 'COD' }}<br>
-                                <small>{{ $paymentStatusLabels[$order->payment_status] ?? 'Không xác định' }}</small>
+                                @php
+                                    $paymentBadge = 'badge-secondary';
+                                    if ((int) $order->payment_status === 1) $paymentBadge = 'badge-success';
+                                    if ((int) $order->payment_status === 2) $paymentBadge = 'badge-danger';
+                                    if ((int) $order->payment_status === 3) $paymentBadge = 'badge-info';
+                                @endphp
+                                <small><span class="badge {{ $paymentBadge }}">{{ $paymentStatusLabels[$order->payment_status] ?? 'Không xác định' }}</span></small>
                             </td>
-                            <td>{{ $orderStatusLabels[$order->status] ?? 'Không xác định' }}</td>
+                            <td>
+                                @php
+                                    $orderBadge = 'badge-secondary';
+                                    if ((int) $order->status === 0) $orderBadge = 'badge-warning';
+                                    if ((int) $order->status === 1) $orderBadge = 'badge-primary';
+                                    if ((int) $order->status === 2) $orderBadge = 'badge-info';
+                                    if ((int) $order->status === 3) $orderBadge = 'badge-primary';
+                                    if ((int) $order->status === 4) $orderBadge = 'badge-success';
+                                    if ((int) $order->status === 5) $orderBadge = 'badge-danger';
+                                @endphp
+                                <span class="badge {{ $orderBadge }}">{{ $orderStatusLabels[$order->status] ?? 'Không xác định' }}</span>
+                            </td>
                             <td>
                                 @php
                                     $allowedTargets = [

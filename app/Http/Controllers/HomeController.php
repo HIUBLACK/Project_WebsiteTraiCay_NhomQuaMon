@@ -368,7 +368,10 @@ class HomeController extends Controller
     public function user()
     {
         $all_category_product = DB::table('tbl_category_product')->get();
-        $all_product = DB::table('tbl_product')->get();
+        $all_product = DB::table('tbl_product')
+            ->whereNull('deleted_at')
+            ->where('product_status', 1)
+            ->get();
         $manager_category_product = view('pages.home')
             ->with('all_category_product', $all_category_product)
             ->with('all_product', $all_product);
@@ -455,7 +458,11 @@ class HomeController extends Controller
         }
 
         // Kiểm tra product_id hợp lệ
-        $product = DB::table('tbl_product')->where('product_id', $product_id)->first();
+        $product = DB::table('tbl_product')
+            ->where('product_id', $product_id)
+            ->whereNull('deleted_at')
+            ->where('product_status', 1)
+            ->first();
         if (!$product) {
             return redirect('/san-pham')->with('error', 'Sản phẩm không tồn tại.');
         }
@@ -638,19 +645,20 @@ class HomeController extends Controller
             return redirect('/dang-nhap-dang-ky')->with('error', 'Bạn cần đăng nhập.');
         }
 
-        // $all_oder = DB::table('tbl_oder')->orderByDesc('oder_id')->get();
-        // $manager_oder = view('pages.notification')->with('all_oder', $all_oder);
-        // return view('user_layout')->with('pages.notification', $manager_oder);
-
-        $id = Auth::id();
-        $all_oder = DB::table('tbl_oder')
-            ->where('tbl_oder.oder_id_user', $id)
-            ->orderByDesc('tbl_oder.oder_id')
+        $notifications = DB::table('tbl_order_main')
+            ->where('user_id', Auth::id())
+            ->orderByDesc('order_id')
             ->select(
-                'tbl_oder.*',
+                'order_id',
+                'status',
+                'payment_status',
+                'payment_method',
+                'created_at',
+                'cancelled_at',
             )
             ->get();
-        $manager_oder = view('pages.notification')->with('all_oder', $all_oder);
+
+        $manager_oder = view('pages.notification')->with('notifications', $notifications);
         return view('user_layout')->with('pages.notification', $manager_oder);
     }
 

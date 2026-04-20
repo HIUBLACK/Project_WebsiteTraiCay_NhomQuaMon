@@ -18,9 +18,11 @@ class Product extends Model
         'product_desc',
         'product_content',
         'product_price',
+        'stock_quantity',
         'product_image',
         'product_status',
         'category_id',
-        'brand_id'
+        'brand_id',
+        'deleted_at'
     ];
 }

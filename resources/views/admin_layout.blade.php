@@ -152,6 +152,25 @@
                     </div>
                 </div>
             </li>
+             </li>
+             <li class="nav-item">
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapse6"
+                    aria-expanded="true" aria-controls="collapse6">
+                    <i class="fas fa-fw fa-table"></i>
+                    <span>Quản Lý Thống Kê</span>
+                </a>
+                <div id="collapse6" class="collapse" aria-labelledby="heading1" data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <h6 class="collapse-header">Tùy chỉnh:</h6>
+                        <a class="collapse-item" href="{{URL::to('all-statistics-revenue')}}">Bảng thống kê doanh thu</a>
+                         <a class="collapse-item" href="{{URL::to('all-statistics-order')}}">Bảng thống kê đơn hàng</a>
+                          <a class="collapse-item" href="{{URL::to('all-statistics-product')}}">Bảng thống kê sản phẩm</a>
+                           <a class="collapse-item" href="{{URL::to('all-statistics-customer')}}">Bảng thống kê khách hàng</a>
+                            <a class="collapse-item" href="{{URL::to('all-statistics-coupon')}}">Bảng thống kê khuyến mãi</a>
+
+                    </div>
+                </div>
+            </li>
 
             <!-- Nav Item - Utilities Collapse Menu -->
           <!--   <li class="nav-item">
@@ -447,6 +466,7 @@
 @yield('edit_category_product')
 @yield('all_oder')
 @yield('all_accoutn')
+@yield('edit_accoutn')
 @yield('edit_product')
 @yield('add_product')
 @yield('all_product')
@@ -454,10 +474,11 @@
 @yield('all_coupon')
 @yield('all_rank_user')
 @yield('admin_order_detail')
-
-
-
-
+@yield('all_statistics_revenue')
+@yield('all_statistics_order')
+@yield('all_statistics_product')
+@yield('all_statistics_customer')
+@yield('all_statistics_coupon')
 
 
 

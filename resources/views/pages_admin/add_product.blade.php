@@ -99,6 +99,10 @@ body {
             <input type="text" id="category-name" name="product_price" placeholder="Giá" required>
         </div>
         <div class="form-group">
+            <label for="stock-quantity">Tồn kho:</label>
+            <input type="number" id="stock-quantity" name="stock_quantity" min="0" placeholder="Số lượng tồn kho" required>
+        </div>
+        <div class="form-group">
             <label for="category-name">Hình ảnh:</label>
             <input type="file" id="category-name" name="product_image" placeholder="thêm hình ảnh" required>
         </div>

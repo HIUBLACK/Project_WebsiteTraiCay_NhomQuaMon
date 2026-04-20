@@ -14,9 +14,28 @@ class CouponController extends Controller
         return view('pages_admin.add_coupon', compact('products', 'users'));
     }
 
-    public function all_coupon(){
-    $all_coupon = DB::table('tbl_coupon')->orderByDesc('coupon_id')->get();
-    return view('pages_admin.all_coupon', compact('all_coupon'));
+    public function all_coupon(Request $request){
+    $query = DB::table('tbl_coupon')->orderByDesc('coupon_id');
+
+    if ($request->filled('status')) {
+        if ($request->status === 'active') {
+            $query->where(function ($subQuery) {
+                $subQuery->whereNull('coupon_expiry')
+                    ->orWhereDate('coupon_expiry', '>=', now()->toDateString());
+            });
+        }
+
+        if ($request->status === 'expired') {
+            $query->whereNotNull('coupon_expiry')
+                ->whereDate('coupon_expiry', '<', now()->toDateString());
+        }
+    }
+
+    $all_coupon = $query->get();
+    return view('pages_admin.all_coupon', [
+        'all_coupon' => $all_coupon,
+        'selected_status' => $request->status,
+    ]);
     }
 
     public function save_coupon(Request $request){

@@ -16,9 +16,17 @@
         <p><strong>Người nhận:</strong> {{ $order->name }}</p>
         <p><strong>SĐT:</strong> {{ $order->phone }}</p>
         <p><strong>Địa chỉ:</strong> {{ $order->address }}</p>
-        <p><strong>Trạng thái đơn:</strong> {{ $orderStatusLabels[$order->status] ?? 'Không xác định' }}</p>
+        <p><strong>Trạng thái đơn:</strong>
+            <span class="badge badge-{{ $order->status == 4 ? 'success' : ($order->status == 5 ? 'danger' : ($order->status == 0 ? 'warning' : 'primary')) }}">
+                {{ $orderStatusLabels[$order->status] ?? 'Không xác định' }}
+            </span>
+        </p>
         <p><strong>Thanh toán:</strong> {{ $order->payment_method == 'vnpay' ? 'VNPay' : 'COD' }}</p>
-        <p><strong>Trạng thái thanh toán:</strong> {{ $paymentStatusLabels[$order->payment_status] ?? 'Không xác định' }}</p>
+        <p><strong>Trạng thái thanh toán:</strong>
+            <span class="badge badge-{{ $order->payment_status == 1 ? 'success' : ($order->payment_status == 2 ? 'danger' : ($order->payment_status == 3 ? 'info' : 'secondary')) }}">
+                {{ $paymentStatusLabels[$order->payment_status] ?? 'Không xác định' }}
+            </span>
+        </p>
     </div>
 
     <table class="table table-bordered">

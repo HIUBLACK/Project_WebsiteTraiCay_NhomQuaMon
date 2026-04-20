@@ -150,9 +150,9 @@ class OderController extends Controller
         ];
     }
 
-    public function all_oder()
+    public function all_oder(Request $request)
     {
-        $orders = DB::table('tbl_order_main')
+        $query = DB::table('tbl_order_main')
             ->leftJoin('users', 'tbl_order_main.user_id', '=', 'users.id')
             ->leftJoin('tbl_oder', 'tbl_order_main.order_id', '=', 'tbl_oder.order_id')
             ->select(
@@ -160,7 +160,21 @@ class OderController extends Controller
                 'users.name as user_name',
                 'users.email as user_email',
                 DB::raw('COALESCE(SUM(tbl_oder.oder_soluong), 0) as total_quantity')
-            )
+            );
+
+        if ($request->filled('status')) {
+            $query->where('tbl_order_main.status', $request->status);
+        }
+
+        if ($request->filled('payment_status')) {
+            $query->where('tbl_order_main.payment_status', $request->payment_status);
+        }
+
+        if ($request->filled('date')) {
+            $query->whereDate('tbl_order_main.created_at', $request->date);
+        }
+
+        $orders = $query
             ->groupBy(
                 'tbl_order_main.order_id',
                 'tbl_order_main.user_id',
@@ -186,6 +200,11 @@ class OderController extends Controller
             'orders' => $orders,
             'orderStatusLabels' => $this->orderStatusLabels(),
             'paymentStatusLabels' => $this->paymentStatusLabels(),
+            'filters' => [
+                'status' => $request->status,
+                'payment_status' => $request->payment_status,
+                'date' => $request->date,
+            ],
         ]);
     }
 

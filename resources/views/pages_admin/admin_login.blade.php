@@ -47,18 +47,15 @@
                                     <div class="text-center">
                                         <h1 class="h4 text-gray-900 mb-4">Chào mừng Admin trở lại!</h1>
                                     </div>
-                                    <?php
-                                        $result = session()->get('massge');
-                                        echo "<span class='massge-text' >$result</span>";
-                                        session()->put('massge',null);
-
-                                    ?>
+                                    @if(session('message'))
+                                        <span class='massge-text'>{{ session('message') }}</span>
+                                    @endif
                                     <form action="{{URL::to('/admin-kiem-tra')}}" method="post"  class="user">
                                         {{ csrf_field() }}
                                         <div class="form-group">
                                             <input type="text" class="form-control form-control-user"
                                                 id="exampleInputEmail" aria-describedby="emailHelp"
-                                                placeholder="Tên đăng nhập..." name="admin_username">
+                                                placeholder="Tên đăng nhập..." name="admin_username" value="{{ old('admin_username') }}">
                                         </div>
                                         <div class="form-group">
                                             <input type="password" class="form-control form-control-user"

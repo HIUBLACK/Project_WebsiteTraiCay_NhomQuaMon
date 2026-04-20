@@ -41,9 +41,28 @@
                             <td>{{ $order->phone }}</td>
                             <td>{{ number_format($order->total) }}đ</td>
                             <td>{{ $order->payment_method == 'vnpay' ? 'VNPay' : 'COD' }}</td>
-                            <td>{{ $paymentStatusLabels[$order->payment_status] ?? 'Không xác định' }}</td>
+                            <td style="background-color: rgb(175, 212, 73);">
+                                @php
+                                    $paymentBadge = 'badge-secondary';
+                                    if ((int) $order->payment_status === 1) $paymentBadge = 'badge-success';
+                                    if ((int) $order->payment_status === 2) $paymentBadge = 'badge-danger';
+                                    if ((int) $order->payment_status === 3) $paymentBadge = 'badge-info';
+                                @endphp
+                                <span class="badge {{ $paymentBadge }}">{{ $paymentStatusLabels[$order->payment_status] ?? 'Không xác định' }}</span>
+                            </td>
                             <td>{{ $order->created_at }}</td>
-                            <td>{{ $orderStatusLabels[$order->status] ?? 'Không xác định' }}</td>
+                            <td style="background-color: rgb(102, 170, 102);">
+                                @php
+                                    $orderBadge = 'badge-secondary';
+                                    if ((int) $order->status === 0) $orderBadge = 'badge-warning';
+                                    if ((int) $order->status === 1) $orderBadge = 'badge-primary';
+                                    if ((int) $order->status === 2) $orderBadge = 'badge-info';
+                                    if ((int) $order->status === 3) $orderBadge = 'badge-primary';
+                                    if ((int) $order->status === 4) $orderBadge = 'badge-success';
+                                    if ((int) $order->status === 5) $orderBadge = 'badge-danger';
+                                @endphp
+                                <span class="badge {{ $orderBadge }}">{{ $orderStatusLabels[$order->status] ?? 'Không xác định' }}</span>
+                            </td>
                             <td><a href="{{ url('/chi-tiet-don/'.$order->order_id) }}">Xem</a></td>
                             <td>
                                 @if(in_array((int) $order->status, [0, 1], true))

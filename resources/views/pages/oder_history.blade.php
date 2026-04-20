@@ -61,7 +61,13 @@
     <td>{{ number_format($order->total) }}đ</td>
 
     <td>
-        {{ $order->payment_method == 'cod' ? 'COD' : 'Thanh toán khi nhận hàng' }}
+        @if($order->payment_method == 'vnpay')
+            VNPay
+        @elseif($order->payment_method == 'cod')
+            COD
+        @else
+            Chưa xác định
+        @endif
     </td>
 
     <td>{{ $order->created_at }}</td>

@@ -117,38 +117,30 @@
                     <div class="row g-4 text-center align-items-center justify-content-center border-bottom py-3">
                         <div class="col-12">
                             <div class="form-check text-start my-3">
-                                <input type="checkbox" class="form-check-input bg-primary border-0" id="Transfer-1" name="Transfer" value="Transfer">
-                                <label class="form-check-label" for="Transfer-1">Chuyển khoản ngân hàng</label>
+                                <input type="radio" class="form-check-input bg-primary border-0" id="Transfer-1" name="payment_method" value="vnpay" {{ old('payment_method') == 'vnpay' ? 'checked' : '' }}>
+                                <label class="form-check-label" for="Transfer-1">Thanh toán qua VNPay</label>
                             </div>
-                            <p class="text-start text-dark">Thanh toán bằng thẻ Atm, các ví điện tử, paypal.</p>
+                            <p class="text-start text-dark">Thanh toán bằng thẻ Atm, mã QR.</p>
                         </div>
                     </div>
-                    {{-- <div class="row g-4 text-center align-items-center justify-content-center border-bottom py-3">
-                        <div class="col-12">
-                            <div class="form-check text-start my-3">
-                                <input type="checkbox" class="form-check-input bg-primary border-0" id="Payments-1" name="Payments" value="Payments">
-                                <label class="form-check-label" for="Payments-1">Check Payments</label>
-                            </div>
-                        </div>
-                    </div> --}}
                     <div class="row g-4 text-center align-items-center justify-content-center border-bottom py-3">
                         <div class="col-12">
                             <div class="form-check text-start my-3">
-                                <input type="checkbox" class="form-check-input bg-primary border-0" id="Delivery-1" name="Delivery" value="Delivery">
-                                <label class="form-check-label" for="Delivery-1">Thanh toán khi nhận hàng</label>
+                                <input type="radio" class="form-check-input bg-primary border-0" id="Payments-1" disabled>
+                                <label class="form-check-label" for="Payments-1">Thanh toán qua MoMo</label>
                             </div>
+                            <p class="text-start text-dark">Thanh toán trực tuyến qua ví momo, nhanh chóng, tiện lợi. Tính năng đang cập nhật.</p>
                         </div>
                     </div>
-                    {{-- <div class="row g-4 text-center align-items-center justify-content-center border-bottom py-3">
+                    <div class="row g-4 text-center align-items-center justify-content-center border-bottom py-3">
                         <div class="col-12">
                             <div class="form-check text-start my-3">
-                                <input type="checkbox" class="form-check-input bg-primary border-0" id="Paypal-1" name="Paypal" value="Paypal">
-                                <label class="form-check-label" for="Paypal-1">Phương thức khác</label>
+                                <input type="radio" class="form-check-input bg-primary border-0" id="Delivery-1" name="payment_method" value="cod" {{ old('payment_method', 'cod') == 'cod' ? 'checked' : '' }}>
+                                <label class="form-check-label" for="Delivery-1">Thanh toán khi nhận hàng</label>
                             </div>
+                            <p class="text-start text-dark">Thanh toán khi nhận hàng, tiện lợi và an toàn</p>
                         </div>
-                    </div> --}}
-
-
+                    </div>
                     <div class="row g-4 text-center align-items-center justify-content-center pt-4">
 
                         <button  name="thanh_toan"  class ="btn border-secondary py-3 px-4 text-uppercase w-100 text-primary" >Đặt hàng</button>

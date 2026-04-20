@@ -28,11 +28,12 @@
                                 <thead>
                                     <tr>
                                         <th>STT</th>
+                                        <th>Mã đơn</th>
                                         <th>Ngày đặt</th>
-                                        <th>Ngày duyệt</th>
+                                        <th>Ngày xác nhận</th>
                                         <th>Số lượng</th>
                                         <th>Tổng tiền</th>
-                                        <th>Duyệt đơn</th>
+                                        <th>Trạng thái đơn</th>
                                         <th>Tùy chỉnh:</th>
                                     </tr>
                                 </thead>
@@ -47,6 +48,7 @@
                                         <td><?php
                                         echo $dem++;
                                     ?></td>
+                                        <td></td>
                                         <td>{{$oder ->created_at}}</td>
                                         <td>{{$oder ->updated_at}}</td>
 
@@ -68,9 +70,9 @@
                                                     <i class="fa fa-plus-circle fa-1x"  style="color:green"></i> Sửa
                                                 </div>
                                             </a>
-                                            <a href="" onclick="return confirm('Bạn có chắc chắn muốn xóa danh mục này không?')" style="text-decoration: none">
+                                            <a href="" onclick="return confirm('Bạn có chắc chắn muốn hủy đơn này không?')" style="text-decoration: none">
                                                 <div>
-                                                <i class="fa fa-trash fa-1x" style="padding-left: 1px"></i> Xóa
+                                                <i class="fa fa-trash fa-1x" style="padding-left: 1px"></i> Hủy đơn
                                                 </div>
                                              </a>
                                         </td>

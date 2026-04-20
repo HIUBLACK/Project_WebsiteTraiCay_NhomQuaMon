@@ -1,5 +1,90 @@
 @extends('admin_layout')
 @section('add_product')
+<style>
+    #form_add {
+    max-width: 100%;
+    background: #fff;
+    padding: 25px 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    border: 1px solid #eee;
+}
+
+/* Title */
+#h1_themdanhmuc {
+    font-weight: 600;
+    margin-bottom: 20px;
+}
+
+/* Form group */
+#form_add .form-group {
+    margin-bottom: 18px;
+}
+
+/* Label */
+#form_add label {
+    font-weight: 600;
+    margin-bottom: 6px;
+    display: block;
+    color: #333;
+}
+
+/* Input + Select + Textarea */
+#form_add input,
+#form_add select,
+#form_add textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+/* Focus effect giống Shopee */
+#form_add input:focus,
+#form_add select:focus,
+#form_add textarea:focus {
+    border-color: #ee4d2d;
+    box-shadow: 0 0 0 2px rgba(238,77,45,0.1);
+    outline: none;
+}
+
+/* Textarea */
+#form_add textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+/* File input */
+#form_add input[type="file"] {
+    padding: 6px;
+    background: #fafafa;
+}
+
+/* Button Shopee style */
+#form_add button {
+    width: 100%;
+    padding: 12px;
+    background: #ee4d2d;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 15px;
+    transition: 0.2s;
+}
+
+/* Hover */
+#form_add button:hover {
+    background: #d73211;
+}
+
+/* Nhẹ nhàng hơn */
+body {
+    background: #f5f5f5;
+}
+</style>
 <h1 class="h3 mb-2 text-gray-800" id="h1_themdanhmuc">Thêm Sản Phẩm</h1>
 <div id="form_add">
     <form action="{{URL::to('/save-product')}}" method="POST" enctype="multipart/form-data">

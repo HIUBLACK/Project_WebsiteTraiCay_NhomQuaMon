@@ -100,6 +100,7 @@ Route::post('/delete-gio-hang/{oder_id}', 'App\Http\Controllers\HomeController@d
 
 Route::get('/thanh-toan', 'App\Http\Controllers\CheckOutController@thanh_toan');
 Route::post('/xu-ly-thanh-toan', 'App\Http\Controllers\CheckOutController@xu_ly_thanh_toan');
+Route::get('/vnpay-return', 'App\Http\Controllers\CheckOutController@vnpay_return');
 
 //Phân sản phẩm theo danh mục
 Route::get('/san-pham-theo-danh-muc/{category_id}', 'App\Http\Controllers\ProductController@san_pham_theo_danh_muc');
@@ -145,3 +146,4 @@ Route::get('/chi-tiet-don/{id}','App\Http\Controllers\OderController@chi_tiet_do
 Route::get('/huy-don/{id}', 'App\Http\Controllers\OderController@huy_don');
 //Xếp hạng người dùng
 Route::get('/all-rank-user', 'App\Http\Controllers\AdminController@xep_hang_nguoi_dung');
+

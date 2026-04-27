@@ -109,7 +109,8 @@
                         <a class="collapse-item" href="{{URL::to('them-sanpham')}}">Thêm sản phẩm</a>
                     </div>
                 </div>
-            </li> <li class="nav-item">
+            </li>
+            <li class="nav-item">
                 <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapse3"
                     aria-expanded="true" aria-controls="collapse3">
                     <i class="fas fa-fw fa-table"></i>
@@ -152,7 +153,7 @@
                     </div>
                 </div>
             </li>
-             </li>
+
              <li class="nav-item">
                 <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapse6"
                     aria-expanded="true" aria-controls="collapse6">
@@ -171,36 +172,7 @@
                     </div>
                 </div>
             </li>
-              </li>
-             <li class="nav-item">
-                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapse5"
-                    aria-expanded="true" aria-controls="collapse5">
-                    <i class="fas fa-fw fa-table"></i>
-                    <span>Quản Lý Đánh Giá</span>
-                </a>
-                <div id="collapse5" class="collapse" aria-labelledby="heading1" data-parent="#accordionSidebar">
-                    <div class="bg-white py-2 collapse-inner rounded">
-                        <h6 class="collapse-header">Tùy chỉnh:</h6>
-                        <a class="collapse-item" href="{{URL::to('all-rank-user')}}">Danh sách xếp hạng</a>
 
-                    </div>
-                </div>
-            </li>
-              </li>
-             <li class="nav-item">
-                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapse5"
-                    aria-expanded="true" aria-controls="collapse5">
-                    <i class="fas fa-fw fa-table"></i>
-                    <span>Quản Lý Chat</span>
-                </a>
-                <div id="collapse5" class="collapse" aria-labelledby="heading1" data-parent="#accordionSidebar">
-                    <div class="bg-white py-2 collapse-inner rounded">
-                        <h6 class="collapse-header">Tùy chỉnh:</h6>
-                        <a class="collapse-item" href="{{URL::to('all-rank-user')}}">Danh sách xếp hạng</a>
-
-                    </div>
-                </div>
-            </li>
 
             <!-- Nav Item - Utilities Collapse Menu -->
           <!--   <li class="nav-item">

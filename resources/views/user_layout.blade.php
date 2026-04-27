@@ -368,6 +368,7 @@
     <script src="{{asset('fontend/lib/owlcarousel/owl.carousel.min.js')}}"></script>
 
     <!-- Template Javascript -->
+    <script src="{{asset('js/api-auth.js')}}"></script>
     <script src="{{asset('fontend/js/main.js')}}"></script>
     <script src="{{asset('fontend/js/jsAccoutn.js')}}"></script>
     <script>

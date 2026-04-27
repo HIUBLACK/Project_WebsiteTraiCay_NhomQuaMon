@@ -1,0 +1,99 @@
+/* Container */
+.coupon-container {
+    max-width: 900px;
+    margin: auto;
+    background: #fff;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+/* Title */
+.coupon-title {
+    font-size: 26px;
+    font-weight: bold;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+/* Input + Select */
+.coupon-form input,
+.coupon-form select {
+    width: 100%;
+    padding: 10px 14px;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    transition: 0.3s;
+}
+
+.coupon-form input:focus,
+.coupon-form select:focus {
+    border-color: #4CAF50;
+    outline: none;
+    box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
+}
+
+/* Label */
+.coupon-form label {
+    font-weight: 500;
+    margin-bottom: 5px;
+    display: block;
+}
+
+/* Button */
+.btn-submit {
+    background: #4CAF50;
+    color: white;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.3s;
+    width: 100%;
+    font-weight: bold;
+}
+
+.btn-submit:hover {
+    background: #45a049;
+}
+
+/* Table */
+.product-table {
+    margin-top: 20px;
+    border-collapse: collapse;
+    width: 100%;
+}
+
+.product-table th,
+.product-table td {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    text-align: center;
+}
+
+.product-table th {
+    background: #f8f8f8;
+}
+
+.product-table tr:hover {
+    background: #f1f9f1;
+}
+
+/* Checkbox */
+input[type="checkbox"] {
+    transform: scale(1.2);
+}
+
+/* Badge preview */
+.preview-price {
+    font-weight: bold;
+    color: #e91e63;
+}
+
+/* Responsive */
+@media(max-width:768px) {
+    .coupon-container {
+        padding: 15px;
+    }
+}

@@ -1,75 +1,61 @@
 @extends('user_layout')
 @section('thong_bao')
-<!-- Single Page Header start -->
 <div class="container-fluid page-header py-5">
-    <h1 class="text-center text-white display-6">Thông báo</h1>
-    <ol class="breadcrumb justify-content-center mb-0">
-        <li class="breadcrumb-item"><a href="#">Trang Chủ</a></li>
-        <li class="breadcrumb-item active text-white">Thông báo</li>
-    </ol>
+    <h1 class="text-center text-white display-6">Thông báo đơn hàng</h1>
 </div>
-<!-- Single Page Header End -->
-            <!-- Begin Page Content -->
-            <div class="container-fluid">
 
-                <!-- DataTales Example -->
-                <div class="card shadow mb-4">
-                    <div class="card-header py-3">
-                        <h6 class="m-0 font-weight-bold text-primary">
-                        </h6>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-bordered" id="dataTable" width="100%"  cellspacing="0">
-                                <thead>
-                                    <tr>
-                                        <th>Stt</th>
-                                        <th>Ngày thông báo</th>
-                                        <th>Thông tin</th>
-                                    </tr>
-                                </thead>
-                                <tbody >
-                                    <?php
-                                    $dem=1;
-                                    ?>
-                                    @foreach ($all_oder as $key => $oder )
-                                    <?php
-                                    if($oder->oder_status == 1){
-                                    ?>
-                                    <tr class="{{$oder->oder_id % 2 != 0 ?'mau-trang':'mau-xam'}}" >
-                                        <td>
-                                            <?php
-                                            echo $dem++;
-                                            session()->put('thongbao', $dem -1);
-
-
-                                            ?>
-                                        </td>
-                                        <td>
-                                            {{$oder->updated_at}}
-
-                                        </td>
-
-                                        <td>
-                                            <a href="{{URL::to('/lich-su-dat-hang')}}">
-                                            <?php
-
-                                            echo 'Đơn hàng đã được phê duyệt';
-
-                                            ?>
-                                            </a>
-                                        </td>
-                                    </tr>
-                                    <?php
-                                    }
-                                    ?>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-            <!-- /.container-fluid -->
+<div class="container py-5">
+    <div class="shop-table-card">
+        <div class="p-4 border-bottom">
+            <h3 class="mb-1">Trung tâm thông báo</h3>
+            <p class="text-muted mb-0">Theo dõi tiến trình đơn hàng và trạng thái thanh toán của bạn.</p>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>#</th>
+                        <th>Thời gian</th>
+                        <th>Nội dung thông báo</th>
+                        <th>Chi tiết</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($notifications as $index => $notification)
+                        @php
+                            $message = 'Đơn hàng #' . $notification->order_id . ' đang chờ xác nhận.';
+                            if ((int) $notification->payment_status === 2) {
+                                $message = 'Thanh toán của đơn #' . $notification->order_id . ' đã thất bại hoặc bị hủy.';
+                            } elseif ((int) $notification->payment_status === 3) {
+                                $message = 'Đơn hàng #' . $notification->order_id . ' đã được hoàn tiền.';
+                            } elseif ((int) $notification->payment_status === 1 && $notification->payment_method === 'vnpay') {
+                                $message = 'Đơn hàng #' . $notification->order_id . ' đã thanh toán thành công qua VNPay.';
+                            } elseif ((int) $notification->status === 1) {
+                                $message = 'Đơn hàng #' . $notification->order_id . ' đã được xác nhận.';
+                            } elseif ((int) $notification->status === 2) {
+                                $message = 'Đơn hàng #' . $notification->order_id . ' đang được chuẩn bị.';
+                            } elseif ((int) $notification->status === 3) {
+                                $message = 'Đơn hàng #' . $notification->order_id . ' đang được giao.';
+                            } elseif ((int) $notification->status === 4) {
+                                $message = 'Đơn hàng #' . $notification->order_id . ' đã giao thành công.';
+                            } elseif ((int) $notification->status === 5) {
+                                $message = 'Đơn hàng #' . $notification->order_id . ' đã bị hủy.';
+                            }
+                        @endphp
+                        <tr>
+                            <td>{{ $index + 1 }}</td>
+                            <td>{{ $notification->cancelled_at ?: $notification->created_at }}</td>
+                            <td>{{ $message }}</td>
+                            <td><a href="{{ url('/chi-tiet-don/'.$notification->order_id) }}" class="btn btn-sm btn-outline-primary rounded-pill px-3">Xem đơn</a></td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="4" class="text-center py-5 text-muted">Bạn chưa có thông báo nào.</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 @endsection

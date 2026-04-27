@@ -1,93 +1,83 @@
 @extends('admin_layout')
 @section('all_product')
+<div class="container-fluid">
+    <h1 class="h3 mb-2 text-gray-800">Danh sách sản phẩm</h1>
 
-                <!-- Begin Page Content -->
-                <div class="container-fluid">
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <div class="m-0 font-weight-bold text-primary">
+                @if(session('message'))
+                    <span>{{ session('message') }}</span>
+                @endif
+                @if(session('message_product'))
+                    <span>{{ session('message_product') }}</span>
+                @endif
+                @if(session('error_product'))
+                    <span style="color:red">{{ session('error_product') }}</span>
+                @endif
+            </div>
+            <div class="form-group" id="btn-them-san-pham">
+                <a href="{{URL::to('them-sanpham')}}"><button name="zzz">Thêm Sản Phẩm</button></a>
+            </div>
+        </div>
 
-                    <!-- Page Heading -->
-                    <h1 class="h3 mb-2 text-gray-800">Danh sách sản phẩm</h1>
-
-                    <!-- DataTales Example -->
-                    <div class="card shadow mb-4">
-                        <div class="card-header py-3">
-
-
-                            <div class="m-0 font-weight-bold text-primary">
-                                  <?php
-                                    $name = session()->get('message');
-                                    if($name){
-                                    echo "<span class='message_category' >
-                                        $name
-                                        <i class='fas fa-check'></i>
-                                     </span>";
-                                     session()->put('message', null);
-                                    }
-                                ?>
-                                <?php
-                                    $name = session()->get('error_product');
-                                    if($name){
-                                    echo "<span class='message_category' >
-                                        $name
-                                        <i class='fas fa-check'></i>
-                                     </span>";
-                                     session()->put('error_product', null);
-                                    }
-                                ?>
-                            </div>
-                            <div class="form-group" id="btn-them-san-pham">
-                                <a href="{{URL::to('them-sanpham')}}"><button name="zzz">Thêm Sản Phẩm</button></a>
-                            </div>
-
-                        </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-bordered" id="dataTable" width="100%"  cellspacing="0">
-                                    <thead>
-                                        <tr>
-                                            <th>Tên sản phẩm</th>
-                                            <th>Ảnh</th>
-                                            <th>Ngày thêm</th>
-                                            <th>Giá</th>
-                                            {{-- <th>Chế độ</th> --}}
-                                            <th>Tùy chỉnh</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody >
-                                        @foreach ($all_product as $key => $pro )
-                                        <tr class="{{$pro->product_id % 2 != 0 ?'mau-trang':'mau-xam'}}" >
-                                            <td>{{$pro ->product_name}}</td>
-                                            <td><img src="upload/product/{{$pro->product_image}}" width="100px" height="100px"></td>
-                                            <td>{{$pro ->created_at}}</td>
-                                            <td>{{$pro ->product_price}}</td>
-
-
-                                            {{-- @if($pro->product_status == 0)
-
-                                                <a href="{{ URL::to('/unactivate-category-product/'.$cate_pro->category_id)}}" style="text-decoration: none">Ẩn</a>
-                                            @else
-                                                <a href="{{ URL::to('/activate-category-product/'.$cate_pro->category_id)}}" style="text-decoration: none">Hiện</a>
-                                            @endif --}}
-
-                                            <td>
-                                                <a href="{{URL::to('/edit-product/'.$pro->product_id)}}" style="text-decoration: none">
-                                                    <div class="suaxoa" >
-                                                        <i class="fa fa-plus-circle fa-1x"  style="color:green"></i> Sửa
-                                                    </div>
-                                                </a>
-                                                <a href="{{ URL::to('/delete-product/'.$pro->product_id)}}" onclick="return confirm('Bạn có chắc chắn muốn xóa sản phẩm này không?')" style="text-decoration: none">
-                                                    <div>
-                                                    <i class="fa fa-trash fa-1x" style="padding-left: 1px"></i> Xóa
-                                                    </div>
-                                                 </a>
-                                            </td>
-                                        </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-                <!-- /.container-fluid -->
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Tên sản phẩm</th>
+                            <th>Danh mục</th>
+                            <th>Ảnh</th>
+                            <th>Ngày thêm</th>
+                            <th>Giá</th>
+                            <th>Tồn kho</th>
+                            <th>Trạng thái</th>
+                            <th>Tùy chỉnh</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($all_product as $pro)
+                        @php
+                            $displayStatus = (int) $pro->stock_quantity <= 0 ? 0 : (int) $pro->product_status;
+                        @endphp
+                        <tr>
+                            <td>{{ $pro->product_name }}</td>
+                            <td>{{ $pro->category_name }}</td>
+                            <td><img src="upload/product/{{$pro->product_image}}" width="100" height="100"></td>
+                            <td>{{ $pro->created_at }}</td>
+                            <td>{{ number_format($pro->product_price) }}đ</td>
+                            <td>
+                                <strong>{{ $pro->stock_quantity }}</strong>
+                                @if((int) $pro->stock_quantity === 0)
+                                    <div><small class="text-danger">Hết hàng, tự động ẩn</small></div>
+                                @elseif((int) $pro->stock_quantity < 10)
+                                    <div><small class="text-warning">Tồn kho thấp</small></div>
+                                @endif
+                            </td>
+                            <td>
+                                <span class="badge {{ $displayStatus == 1 ? 'badge-success' : 'badge-secondary' }}">
+                                    {{ $displayStatus == 1 ? 'Hiện' : 'Ẩn' }}
+                                </span>
+                            </td>
+                            <td>
+                                <a href="{{URL::to('/edit-product/'.$pro->product_id)}}" style="text-decoration: none">
+                                    <div class="suaxoa">
+                                        <i class="fa fa-plus-circle fa-1x" style="color:green"></i> Sửa
+                                    </div>
+                                </a>
+                                <a href="{{ URL::to('/delete-product/'.$pro->product_id)}}" onclick="return confirm('Bạn có chắc chắn muốn xóa mềm sản phẩm này không?')" style="text-decoration: none">
+                                    <div>
+                                        <i class="fa fa-trash fa-1x" style="padding-left: 1px"></i> Xóa mềm
+                                    </div>
+                                </a>
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection

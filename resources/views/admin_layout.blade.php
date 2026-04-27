@@ -21,6 +21,7 @@
     <link href="{{asset('backend/css/sb-admin-2.min.css')}}" rel="stylesheet">
     <link href="{{asset('backend/css/add_category_product.css')}}" rel="stylesheet">
     <link href="{{asset('backend/css/all_category_product.css')}}" rel="stylesheet">
+    <link href="{{asset('backend/css/add_coupon.css')}}" rel="stylesheet">
 
 
 
@@ -76,7 +77,7 @@
                     <div class="bg-white py-2 collapse-inner rounded">
                         <h6 class="collapse-header">Tùy chỉnh:</h6>
                         <a class="collapse-item" href="{{URL::to('all-taikhoan')}}">Danh sách tài khoản</a>
-                        <a class="collapse-item" href="{{URL::to('them-danhmuc-sanpham')}}">Thêm tài khoản</a>
+                        <a class="collapse-item" href="{{URL::to('add-accoutn')}}">Thêm tài khoản</a>
                     </div>
                 </div>
             </li>
@@ -118,7 +119,84 @@
                     <div class="bg-white py-2 collapse-inner rounded">
                         <h6 class="collapse-header">Quản lý đơn hàng</h6>
                         <a class="collapse-item" href="{{URL::to('all-oder')}}">Danh sách đơn đặt hàng</a>
-                        <a class="collapse-item" href="{{URL::to('detail-oder')}}">Chi tiết đơn đặt hàng</a>
+
+
+                    </div>
+                </div>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapse4"
+                    aria-expanded="true" aria-controls="collapse4">
+                    <i class="fas fa-fw fa-table"></i>
+                    <span>Quản Lý khuyến mãi</span>
+                </a>
+                <div id="collapse4" class="collapse" aria-labelledby="heading1" data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <h6 class="collapse-header">Tùy chỉnh:</h6>
+                        <a class="collapse-item" href="{{URL::to('all-coupon')}}">Danh sách khuyến mãi</a>
+                        <a class="collapse-item" href="{{URL::to('add-coupon')}}">Thêm khuyến mãi</a>
+                    </div>
+                </div>
+            </li>
+             <li class="nav-item">
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapse5"
+                    aria-expanded="true" aria-controls="collapse5">
+                    <i class="fas fa-fw fa-table"></i>
+                    <span>Quản Lý Xếp Hạng</span>
+                </a>
+                <div id="collapse5" class="collapse" aria-labelledby="heading1" data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <h6 class="collapse-header">Tùy chỉnh:</h6>
+                        <a class="collapse-item" href="{{URL::to('all-rank-user')}}">Danh sách xếp hạng</a>
+
+                    </div>
+                </div>
+            </li>
+             </li>
+             <li class="nav-item">
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapse6"
+                    aria-expanded="true" aria-controls="collapse6">
+                    <i class="fas fa-fw fa-table"></i>
+                    <span>Quản Lý Thống Kê</span>
+                </a>
+                <div id="collapse6" class="collapse" aria-labelledby="heading1" data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <h6 class="collapse-header">Tùy chỉnh:</h6>
+                        <a class="collapse-item" href="{{URL::to('all-statistics-revenue')}}">Bảng thống kê doanh thu</a>
+                         <a class="collapse-item" href="{{URL::to('all-statistics-order')}}">Bảng thống kê đơn hàng</a>
+                          <a class="collapse-item" href="{{URL::to('all-statistics-product')}}">Bảng thống kê sản phẩm</a>
+                           <a class="collapse-item" href="{{URL::to('all-statistics-customer')}}">Bảng thống kê khách hàng</a>
+                            <a class="collapse-item" href="{{URL::to('all-statistics-coupon')}}">Bảng thống kê khuyến mãi</a>
+
+                    </div>
+                </div>
+            </li>
+              </li>
+             <li class="nav-item">
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapse5"
+                    aria-expanded="true" aria-controls="collapse5">
+                    <i class="fas fa-fw fa-table"></i>
+                    <span>Quản Lý Đánh Giá</span>
+                </a>
+                <div id="collapse5" class="collapse" aria-labelledby="heading1" data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <h6 class="collapse-header">Tùy chỉnh:</h6>
+                        <a class="collapse-item" href="{{URL::to('all-rank-user')}}">Danh sách xếp hạng</a>
+
+                    </div>
+                </div>
+            </li>
+              </li>
+             <li class="nav-item">
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapse5"
+                    aria-expanded="true" aria-controls="collapse5">
+                    <i class="fas fa-fw fa-table"></i>
+                    <span>Quản Lý Chat</span>
+                </a>
+                <div id="collapse5" class="collapse" aria-labelledby="heading1" data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <h6 class="collapse-header">Tùy chỉnh:</h6>
+                        <a class="collapse-item" href="{{URL::to('all-rank-user')}}">Danh sách xếp hạng</a>
 
                     </div>
                 </div>
@@ -418,14 +496,20 @@
 @yield('edit_category_product')
 @yield('all_oder')
 @yield('all_accoutn')
+@yield('edit_accoutn')
+@yield('add_accoutn')
 @yield('edit_product')
 @yield('add_product')
 @yield('all_product')
-
-
-
-
-
+@yield('add_coupon')
+@yield('all_coupon')
+@yield('all_rank_user')
+@yield('admin_order_detail')
+@yield('all_statistics_revenue')
+@yield('all_statistics_order')
+@yield('all_statistics_product')
+@yield('all_statistics_customer')
+@yield('all_statistics_coupon')
 
 
 
@@ -494,25 +578,85 @@
     <script src="{{asset('backend/vendor/chart.js/Chart.min.js')}}"></script>
 
     <!-- Page level custom scripts -->
-    <script src="{{asset('backend/js/demo/chart-area-demo.js')}}"></script>
-    <script src="{{asset('backend/js/demo/chart-pie-demo.js')}}"></script>
-    <script>
-document.getElementById('product_image').addEventListener('change', function (e) {
-    const file = e.target.files[0];
-    if (file) {
-        // Hiển thị tên ảnh
-        document.getElementById('image-name').textContent = file.name;
+<script src="{{asset('backend/js/demo/chart-area-demo.js')}}"></script>
+<script src="{{asset('backend/js/demo/chart-pie-demo.js')}}"></script>
+<script>
+var productImageInput = document.getElementById('product_image');
+if (productImageInput) {
+    productImageInput.addEventListener('change', function (e) {
+        const file = e.target.files[0];
+        if (file) {
+            var imageName = document.getElementById('image-name');
+            var previewImage = document.getElementById('preview-image');
 
-        // Đọc và hiển thị ảnh
-        const reader = new FileReader();
-        reader.onload = function (event) {
-            document.getElementById('preview-image').src = event.target.result;
-        };
-        reader.readAsDataURL(file);
-    }
-});
+            if (imageName) {
+                imageName.textContent = file.name;
+            }
+
+            if (previewImage) {
+                const reader = new FileReader();
+                reader.onload = function (event) {
+                    previewImage.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+    });
+}
 </script>
+<script>
+var couponScope = document.getElementById('coupon_scope');
+var checkAll = document.getElementById('check_all');
+var couponValue = document.getElementById('coupon_value');
+var couponType = document.getElementById('coupon_type');
 
+if (couponScope) {
+    couponScope.addEventListener('change', function(){
+        var productTable = document.getElementById('product-table');
+        if (productTable) {
+            productTable.style.display = this.value == 2 ? 'block' : 'none';
+        }
+    });
+}
+
+if (checkAll) {
+    checkAll.addEventListener('change', function(){
+        document.querySelectorAll('input[name="product_ids[]"]').forEach(cb => {
+            cb.checked = this.checked;
+        });
+    });
+}
+
+if (couponValue && couponType) {
+    couponValue.addEventListener('input', updatePrice);
+    couponType.addEventListener('change', updatePrice);
+}
+
+function updatePrice(){
+    let value = document.getElementById('coupon_value');
+    let type = document.getElementById('coupon_type');
+
+    if (!value || !type) {
+        return;
+    }
+    value = value.value || 0;
+    type = type.value;
+
+    document.querySelectorAll('.preview-price').forEach(el=>{
+        let price = el.dataset.price;
+        let result = price;
+
+        if(type == 1){
+            result = price - (price * value / 100);
+        }else{
+            result = price - value;
+        }
+
+        if(result < 0) result = 0;
+        el.innerText = Math.round(result).toLocaleString();
+    });
+}
+</script>
 </body>
 
 </html>

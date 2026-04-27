@@ -2,223 +2,325 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use App\Http\Requests;
 use Illuminate\Support\Facades\Session;
-use Illuminate\Support\Facades\Redirect;
-use App\Models\Product;
-
 
 class ProductController extends Controller
 {
-    public function product(){
-        // $all_category_product = DB::table('tbl_category_product')->get();
-        // $all_product = DB::table('tbl_product')->get();
-        // $manager_category_product = view('pages.product')->with('all_category_product', $all_category_product)->with('all_product', $all_product);
-        // // $manager_product = view('pages.product')->with('all_product', $all_product);
-        // return view("user_layout")->with('pages.product',$manager_category_product);
-         $all_category_product = DB::table('tbl_category_product')->get();
+    private function resolveProductStatus(int $stockQuantity, ?int $requestedStatus = 1): int
+    {
+        if ($stockQuantity <= 0) {
+            return 0;
+        }
 
-    // Giới hạn 6 sản phẩm mỗi trang (tùy bạn)
-    $all_product = DB::table('tbl_product')->paginate(6);
+        return (int) ($requestedStatus ?? 1);
+    }
 
-    return view('pages.product', compact('all_category_product', 'all_product'));
-   }
-//    public function user_product(){
-//     $all_category_product = DB::table('tbl_product')->get();
-//     $manager_category_product = view('pages.product')->with('all_product', $all_category_product);
-//     return view("user_layout")->with('pages.product',$manager_category_product);
-// }
-   public function product_detail($product_id){
+    private function buildProductCatalogQuery(Request $request)
+    {
+        $salesSub = DB::table('tbl_oder')
+            ->leftJoin('tbl_order_main', 'tbl_oder.order_id', '=', 'tbl_order_main.order_id')
+            ->select(
+                'tbl_oder.oder_id_product',
+                DB::raw('COALESCE(SUM(CASE WHEN tbl_order_main.status != 5 THEN tbl_oder.oder_soluong ELSE 0 END), 0) as total_sold'),
+                DB::raw('COUNT(DISTINCT CASE WHEN tbl_order_main.status != 5 THEN tbl_order_main.order_id END) as total_orders')
+            )
+            ->groupBy('tbl_oder.oder_id_product');
 
-         $all_product = DB::table('tbl_product')->where('product_id','=',$product_id)->get();
-         $all_product2 = DB::table('tbl_product')->take(3)->get();
-         $all_product3 = DB::table('tbl_product')->get();
-    $manager_product = view('pages.product_detail')->with('all_product', $all_product)->with('all_product2', $all_product2)->with('all_product3', $all_product3);
-    return view("user_layout")->with('pages.product_detail',$manager_product);
+        $query = DB::table('tbl_product')
+            ->leftJoinSub($salesSub, 'sales_stats', function ($join) {
+                $join->on('tbl_product.product_id', '=', 'sales_stats.oder_id_product');
+            })
+            ->whereNull('tbl_product.deleted_at')
+            ->where('tbl_product.product_status', 1)
+            ->where('tbl_product.stock_quantity', '>', 0)
+            ->select(
+                'tbl_product.*',
+                DB::raw('COALESCE(sales_stats.total_sold, 0) as total_sold'),
+                DB::raw('COALESCE(sales_stats.total_orders, 0) as total_orders')
+            );
 
-   }
+        $search = trim((string) $request->query('q', ''));
+        if ($search !== '') {
+            $query->where(function ($inner) use ($search) {
+                $inner->where('tbl_product.product_name', 'like', '%' . $search . '%')
+                    ->orWhere('tbl_product.product_desc', 'like', '%' . $search . '%')
+                    ->orWhere('tbl_product.product_content', 'like', '%' . $search . '%');
+            });
+        }
 
+        $categories = collect((array) $request->query('categories', []))
+            ->filter(fn ($value) => is_numeric($value))
+            ->map(fn ($value) => (int) $value)
+            ->unique()
+            ->values()
+            ->all();
 
-   //HIỂN THỊ sản phẩm
-   public function all_product(){
-    $all_product = DB::table('tbl_product')->get();
-    $manager_product = view('pages_admin.all_product')->with('all_product', $all_product);
-    return view("admin_layout")->with('pages_admin.all_product',$manager_product);
+        if (count($categories) > 0) {
+            $query->whereIn('tbl_product.category_id', $categories);
+        }
 
-}
-//END HIỂN THỊ DANH MỤC
-public function add_product(){
+        $minPrice = $request->query('min_price');
+        if ($minPrice !== null && $minPrice !== '') {
+            $query->where('tbl_product.product_price', '>=', (int) $minPrice);
+        }
+
+        $maxPrice = $request->query('max_price');
+        if ($maxPrice !== null && $maxPrice !== '') {
+            $query->where('tbl_product.product_price', '<=', (int) $maxPrice);
+        }
+
+        $sort = $request->query('sort');
+        if ($sort === 'popular') {
+            $query->orderByDesc('total_orders')->orderByDesc('total_sold')->orderByDesc('tbl_product.product_id');
+        } elseif ($sort === 'best_selling') {
+            $query->orderByDesc('total_sold')->orderByDesc('total_orders')->orderByDesc('tbl_product.product_id');
+        } elseif ($sort === 'price_asc') {
+            $query->orderBy('tbl_product.product_price');
+        } elseif ($sort === 'price_desc') {
+            $query->orderByDesc('tbl_product.product_price');
+        } else {
+            $query->orderByDesc('tbl_product.product_id');
+        }
+
+        return $query;
+    }
+
+    public function product(Request $request)
+    {
+        $all_category_product = DB::table('tbl_category_product')->where('category_status', 1)->get();
+        //$all_product = $this->buildProductCatalogQuery($request)->paginate(9)->withQueryString();
+        $all_product = $this->buildProductCatalogQuery($request)->paginate(9);
+        return view('pages.product', [
+            'all_category_product' => $all_category_product,
+            'all_product' => $all_product,
+            'selectedCategories' => collect((array) $request->query('categories', []))
+                ->filter(fn ($value) => is_numeric($value))
+                ->map(fn ($value) => (int) $value)
+                ->values()
+                ->all(),
+            'filters' => [
+                'q' => $request->query('q'),
+                'sort' => $request->query('sort'),
+                'min_price' => $request->query('min_price'),
+                'max_price' => $request->query('max_price'),
+            ],
+        ]);
+    }
+
+    public function product_detail($product_id)
+    {
+        $all_product = DB::table('tbl_product')
+            ->where('product_id', $product_id)
+            ->whereNull('deleted_at')
+            ->where('product_status', 1)
+            ->where('stock_quantity', '>', 0)
+            ->get();
+
+        $all_product2 = DB::table('tbl_product')
+            ->whereNull('deleted_at')
+            ->where('product_status', 1)
+            ->where('stock_quantity', '>', 0)
+            ->take(3)
+            ->get();
+
+        $all_product3 = DB::table('tbl_product')
+            ->whereNull('deleted_at')
+            ->where('product_status', 1)
+            ->where('stock_quantity', '>', 0)
+            ->get();
+
+        $manager_product = view('pages.product_detail')
+            ->with('all_product', $all_product)
+            ->with('all_product2', $all_product2)
+            ->with('all_product3', $all_product3);
+
+        return view('user_layout')->with('pages.product_detail', $manager_product);
+    }
+
+    public function all_product()
+    {
+        DB::table('tbl_product')
+            ->whereNull('deleted_at')
+            ->where('stock_quantity', '<=', 0)
+            ->where('product_status', '!=', 0)
+            ->update([
+                'product_status' => 0,
+                'updated_at' => now(),
+            ]);
+
+        $all_product = DB::table('tbl_product')
+            ->join('tbl_category_product', 'tbl_product.category_id', '=', 'tbl_category_product.category_id')
+            ->whereNull('tbl_product.deleted_at')
+            ->select('tbl_product.*', 'tbl_category_product.category_name')
+            ->orderByDesc('tbl_product.product_id')
+            ->get();
+
+        return view('pages_admin.all_product', compact('all_product'));
+    }
+
+    public function add_product()
+    {
         $all_category = DB::table('tbl_category_product')->get();
         $manager_category = view('pages_admin.add_product')->with('all_oder', $all_category);
-    return view("admin_layout")->with('pages_admin.add_product',$manager_category);;
 
-}
-//THÊM DANH MỤC
-public function save_product(Request $request){
-    $data = array();
-    $id = $request->input('category_product');
-    $data['product_name'] = $request->product_name;
-    // $data['product_status'] = $request->category_product_status;
-    $data['product_desc'] = $request->product_desc;
-    $data['product_content'] = $request->product_content;
-    $data['product_price'] = $request->product_price;
-    $data['product_status'] = '1';
-    $data['category_id'] = $id;
-    $data['brand_id'] = '1';
-
-    $get_image = $request->file('product_image');
-    if($get_image){
-        $new_image = rand(0,99).'.'.$get_image->getClientOriginalExtension();
-        $get_image ->move('upload/product',$new_image);
-        $data['product_image'] = $new_image;
-        DB::table("tbl_product")->insert($data);
-        Session::put("message", 'Thêm sản phẩm thành công');
-        return redirect("all-sanpham");
+        return view('admin_layout')->with('pages_admin.add_product', $manager_category);
     }
-    $data['product_image'] = '';
-    DB::table("tbl_product")->insert($data);
-    Session::put("message", 'Thêm sản phẩm thành công');
-    return redirect("all-sanpham");
-}
-//END THÊM DANH MỤC
 
-
-// //ẨN HIỆN
-// public function unactivate_category_product($category_product_id){
-//     DB::table("tbl_category_product")->where("category_id",$category_product_id)->update(['category_status'=>1]);
-//     Session::put("message_category_product", 'Hiện danh mục thành công');
-//     return redirect("all-danhmuc-sanpham");
-
-// }
-// public function activate_category_product($category_product_id){
-//     DB::table("tbl_category_product")->where("category_id",$category_product_id)->update(['category_status'=>0]);
-//     Session::put("message_category_product", 'Ẩn danh mục thành công');
-//     return redirect("all-danhmuc-sanpham");
-// }
-// //END ẨN HIỆN
-
-// //DELETE DANH MỤC
-// public function delete_category_product($category_product_id){
-//     DB::table("tbl_category_product")->where("category_id",$category_product_id)->delete();
-//     Session::put("message_category_product", 'Xóa danh mục thành công');
-//     return redirect("all-danhmuc-sanpham");
-// }
-// //EDIT DANH MỤC
-// public function edit_category_product($category_product_id){
-//     $edit_category_product = DB::table('tbl_category_product')->where('category_id',$category_product_id)->get();
-//     $manager_category_product = view('pages_admin.edit_category_product')->with('edit_category_product', $edit_category_product);
-//     return view("admin_layout")->with('pages_admin.edit_category_product',$manager_category_product);
-
-// }
-// //UPDATE DANH MỤC
-// public function update_category_product(Request $request,$category_product_id){
-//     $data1 = array();
-//     $data1['category_name'] = $request->category_product_name;
-//     $data1['category_status'] = $request->category_product_status;
-//     DB::table("tbl_category_product")->where("category_id",$category_product_id)->update($data1);
-//     Session::put("message_category_product", 'Cập nhật danh mục thành công');
-//     return redirect("all-danhmuc-sanpham");
-// }
-
-
- public function san_pham_theo_danh_muc($category_id)
+    public function save_product(Request $request)
     {
-        // Lấy sản phẩm theo category_id
-        $products = Product::where('category_id', $category_id)
+        $request->validate([
+            'product_name' => 'required|string|min:2|max:200|unique:tbl_product,product_name',
+            'product_price' => 'required|numeric|min:1000|max:999999999',
+            'stock_quantity' => 'required|integer|min:0|max:1000000',
+            'product_desc' => 'required|string|min:10|max:500',
+            'product_content' => 'nullable|string|max:5000',
+            'category_product' => 'required|exists:tbl_category_product,category_id',
+            'product_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+        ]);
 
-        ->get();
+        $data = [
+            'product_name' => $request->product_name,
+            'product_desc' => $request->product_desc,
+            'product_content' => $request->product_content,
+            'product_price' => $request->product_price,
+            'stock_quantity' => $request->stock_quantity,
+            'product_status' => $this->resolveProductStatus((int) $request->stock_quantity, 1),
+            'category_id' => $request->category_product,
+            'brand_id' => 1,
+            'product_image' => '',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ];
 
-
-        // Trả về HTML partial (AJAX)
-        return view('pages.product_list', compact('products'));
-
-    }
-    //xóa sản phẩm
-   public function delete_product($product_id)
-{
-    try {
-        // Lấy thông tin sản phẩm
-        $product = DB::table('tbl_product')->where('product_id', $product_id)->first();
-
-        // Cố gắng xóa sản phẩm
-        $deleted = DB::table('tbl_product')->where('product_id', $product_id)->delete();
-
-        if ($deleted) {
-            // Nếu xóa thành công, xóa luôn ảnh
-            if ($product && $product->product_image) {
-                $image_path = public_path('upload/product/' . $product->product_image);
-                if (file_exists($image_path)) {
-                    unlink($image_path);
-                }
-            }
-
-            Session::put('message_product', 'Xóa sản phẩm thành công');
-        } else {
-            // Nếu không xóa được (ví dụ do ràng buộc FK)
-            Session::put('error_product', 'Không thể xóa sản phẩm vì đang có đơn hàng liên quan.');
+        if ($request->hasFile('product_image')) {
+            $get_image = $request->file('product_image');
+            $new_image = time() . '_' . rand(0, 999) . '.' . $get_image->getClientOriginalExtension();
+            $get_image->move('upload/product', $new_image);
+            $data['product_image'] = $new_image;
         }
+
+        DB::table('tbl_product')->insert($data);
+
 
         return redirect('all-sanpham');
-
-    } catch (\Exception $e) {
-        // Trường hợp có lỗi hệ thống
-        Session::put('error_product', 'Không thể xóa sản phẩm vì đang có đơn hàng liên quan.');
-        return redirect()->back();
     }
-}
 
+    public function edit_product($product_id)
+    {
+        $edit_product = DB::table('tbl_product')
+            ->join('tbl_category_product', 'tbl_product.category_id', '=', 'tbl_category_product.category_id')
+            ->where('product_id', $product_id)
+            ->whereNull('tbl_product.deleted_at')
+            ->select('tbl_product.*', 'tbl_category_product.category_name', 'tbl_category_product.category_id as category_id_joined')
+            ->first();
 
-    public function edit_product($product_id) {
-    // Lấy sản phẩm cần sửa và join thêm thông tin danh mục
-    $edit_product = DB::table('tbl_product')
-        ->join('tbl_category_product', 'tbl_product.category_id', '=', 'tbl_category_product.category_id')
-        ->where('product_id', $product_id)
-        ->select('tbl_product.*', 'tbl_category_product.category_name', 'tbl_category_product.category_id as category_id_joined')
-        ->first(); // dùng first thay vì get vì chỉ lấy 1 sản phẩm
+        $all_category = DB::table('tbl_category_product')->get();
 
-    // Lấy danh sách tất cả danh mục để đổ vào <select>
-    $all_category = DB::table('tbl_category_product')->get();
+        $manager_product = view('pages_admin.edit_product')
+            ->with('edit_product', $edit_product)
+            ->with('all_category', $all_category);
 
-    // Gửi dữ liệu sang view
-    $manager_product = view('pages_admin.edit_product')
-        ->with('edit_product', $edit_product)
-        ->with('all_category', $all_category);
+        return view('admin_layout')->with('pages_admin.edit_product', $manager_product);
+    }
 
-    return view("admin_layout")->with('pages_admin.edit_product', $manager_product);
-}
-public function update_product(Request $request, $product_id)
-{
-    $data = array();
-    $data['product_name'] = $request->product_name;
-    $data['product_price'] = $request->product_price;
-    $data['product_desc'] = $request->product_desc;
-    $data['product_content'] = $request->product_content;
-    $data['product_status'] = $request->product_status;
-    $data['category_id'] = $request->category_product;
+    public function update_product(Request $request, $product_id)
+    {
+        $request->validate([
+            'product_name' => 'required|string|min:2|max:200|unique:tbl_product,product_name,' . $product_id . ',product_id',
+            'product_price' => 'required|numeric|min:1000|max:999999999',
+            'stock_quantity' => 'required|integer|min:0|max:1000000',
+            'product_desc' => 'required|string|min:10|max:500',
+            'product_content' => 'nullable|string|max:5000',
+            'product_status' => 'required|in:0,1',
+            'category_product' => 'required|exists:tbl_category_product,category_id',
+            'product_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+        ]);
 
-    // Xử lý ảnh nếu người dùng chọn ảnh mới
-    if ($request->hasFile('product_image')) {
-        $image = $request->file('product_image');
-        $image_name = time() . '_' . $image->getClientOriginalName();
-        $image->move('upload/product', $image_name); // Lưu ảnh vào thư mục public/upload/product
-        $data['product_image'] = $image_name;
+        $data = [
+            'product_name' => $request->product_name,
+            'product_price' => $request->product_price,
+            'stock_quantity' => $request->stock_quantity,
+            'product_desc' => $request->product_desc,
+            'product_content' => $request->product_content,
+            'product_status' => $this->resolveProductStatus((int) $request->stock_quantity, (int) $request->product_status),
+            'category_id' => $request->category_product,
+            'updated_at' => now(),
+        ];
 
-        // Xóa ảnh cũ (nếu cần)
-        $old_image = DB::table('tbl_product')->where('product_id', $product_id)->value('product_image');
-        $old_image_path = public_path('upload/product/' . $old_image);
-        if (file_exists($old_image_path)) {
-            unlink($old_image_path);
+        if ($request->hasFile('product_image')) {
+            $image = $request->file('product_image');
+            $image_name = time() . '_' . $image->getClientOriginalName();
+            $image->move('upload/product', $image_name);
+            $data['product_image'] = $image_name;
+
+            $old_image = DB::table('tbl_product')->where('product_id', $product_id)->value('product_image');
+            $old_image_path = public_path('upload/product/' . $old_image);
+            if ($old_image && file_exists($old_image_path)) {
+                unlink($old_image_path);
+            }
         }
+
+        DB::table('tbl_product')->where('product_id', $product_id)->update($data);
+        Session::put('message_product', 'Cập nhật sản phẩm thành công');
+
+        return redirect('all-sanpham');
     }
 
-    DB::table('tbl_product')->where('product_id', $product_id)->update($data);
-    Session::put('message_product', 'Cập nhật sản phẩm thành công');
-    return redirect('all-sanpham');
+    public function delete_product($product_id)
+    {
+        $product = DB::table('tbl_product')
+            ->where('product_id', $product_id)
+            ->whereNull('deleted_at')
+            ->first();
+
+        if (!$product) {
+            Session::put('error_product', 'Không tìm thấy sản phẩm hoặc sản phẩm đã bị xóa mềm.');
+            return redirect('all-sanpham');
+        }
+
+        DB::table('tbl_product')
+            ->where('product_id', $product_id)
+            ->update([
+                'deleted_at' => now(),
+                'product_status' => 0,
+                'updated_at' => now(),
+            ]);
+
+        Session::put('message_product', 'Đã xóa mềm sản phẩm thành công');
+        return redirect('all-sanpham');
+    }
+
+    public function san_pham_theo_danh_muc($category_id)
+    {
+        $products = Product::where('category_id', $category_id)
+            ->whereNull('deleted_at')
+            ->where('product_status', 1)
+            ->where('stock_quantity', '>', 0)
+            ->get();
+
+        return view('pages.product_list', compact('products'));
+    }
+
+    public function product_suggestions(Request $request)
+    {
+        $keyword = trim((string) $request->query('q', ''));
+
+        if ($keyword === '') {
+            return response()->json([]);
+        }
+
+        $products = DB::table('tbl_product')
+            ->whereNull('deleted_at')
+            ->where('product_status', 1)
+            ->where('stock_quantity', '>', 0)
+            ->where('product_name', 'like', '%' . $keyword . '%')
+            ->orderByDesc('product_id')
+            ->limit(8)
+            ->get(['product_id', 'product_name', 'product_price', 'product_image']);
+
+        return response()->json($products);
+    }
 }
-
-
-}
-
-

@@ -16,6 +16,11 @@
         </div>
 
         <div class="form-group">
+            <label for="stock_quantity">Tồn kho:</label>
+            <input type="number" id="stock_quantity" value="{{ $edit_product->stock_quantity ?? 0 }}" name="stock_quantity" min="0" required>
+        </div>
+
+        <div class="form-group">
             <label for="product_image">Hình ảnh:</label>
             <input type="file" id="product_image" name="product_image" accept="image/*">
 
@@ -58,6 +63,9 @@
                 <option value="0" {{ $edit_product->product_status == 0 ? 'selected' : '' }}>Ẩn</option>
                 <option value="1" {{ $edit_product->product_status == 1 ? 'selected' : '' }}>Hiện</option>
             </select>
+            <small class="form-text text-muted">
+                Khi tồn kho bằng 0, hệ thống sẽ tự động chuyển sản phẩm sang trạng thái ẩn.
+            </small>
         </div>
 
         <div class="form-group">

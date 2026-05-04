@@ -172,7 +172,20 @@
                     </div>
                 </div>
             </li>
+             <li class="nav-item">
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapse7"
+                    aria-expanded="true" aria-controls="collapse7   ">
+                    <i class="fas fa-fw fa-table"></i>
+                    <span>Quản Lý Đánh Giá</span>
+                </a>
+                <div id="collapse7" class="collapse" aria-labelledby="heading1" data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <h6 class="collapse-header">Tùy chỉnh:</h6>
+                        <a class="collapse-item" href="{{URL::to('all-reviews')}}">Danh sách đánh giá</a>
 
+                    </div>
+                </div>
+            </li>
 
             <!-- Nav Item - Utilities Collapse Menu -->
           <!--   <li class="nav-item">
@@ -482,6 +495,7 @@
 @yield('all_statistics_product')
 @yield('all_statistics_customer')
 @yield('all_statistics_coupon')
+@yield('all_reviews')
 
 
 

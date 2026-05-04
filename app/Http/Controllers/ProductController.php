@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
 
@@ -88,6 +89,71 @@ class ProductController extends Controller
         return $query;
     }
 
+    private function getProductReviewStats(int $productId): object
+    {
+        $stats = DB::table('tbl_reviews')
+            ->where('product_id', $productId)
+            ->selectRaw('COUNT(*) as total_reviews, COALESCE(AVG(rating), 0) as average_rating')
+            ->first();
+
+        return (object) [
+            'total_reviews' => (int) ($stats->total_reviews ?? 0),
+            'average_rating' => round((float) ($stats->average_rating ?? 0), 1),
+        ];
+    }
+
+    private function getPublicReviewsByProduct(int $productId)
+    {
+        return DB::table('tbl_reviews')
+            ->join('users', 'tbl_reviews.user_id', '=', 'users.id')
+            ->where('tbl_reviews.product_id', $productId)
+            ->select(
+                'tbl_reviews.*',
+                'users.name as user_name'
+            )
+            ->orderByDesc('tbl_reviews.created_at')
+            ->get();
+    }
+
+    private function getEligibleReviewOrder(int $productId, ?int $orderId)
+    {
+        if (!Auth::check() || !$orderId) {
+            return null;
+        }
+
+        $order = DB::table('tbl_order_main')
+            ->where('order_id', $orderId)
+            ->where('user_id', Auth::id())
+            ->where('status', 4)
+            ->where('payment_status', 1)
+            ->first();
+
+        if (!$order) {
+            return null;
+        }
+
+        $item = DB::table('tbl_oder')
+            ->where('order_id', $orderId)
+            ->where('oder_id_product', $productId)
+            ->first();
+
+        if (!$item) {
+            return null;
+        }
+
+        $existingReview = DB::table('tbl_reviews')
+            ->where('order_id', $orderId)
+            ->where('product_id', $productId)
+            ->where('user_id', Auth::id())
+            ->first();
+
+        return (object) [
+            'order' => $order,
+            'item' => $item,
+            'existingReview' => $existingReview,
+        ];
+    }
+
     public function product(Request $request)
     {
         $all_category_product = DB::table('tbl_category_product')->where('category_status', 1)->get();
@@ -110,7 +176,7 @@ class ProductController extends Controller
         ]);
     }
 
-    public function product_detail($product_id)
+    public function product_detail(Request $request, $product_id)
     {
         $all_product = DB::table('tbl_product')
             ->where('product_id', $product_id)
@@ -132,10 +198,18 @@ class ProductController extends Controller
             ->where('stock_quantity', '>', 0)
             ->get();
 
+        $reviewStats = $this->getProductReviewStats((int) $product_id);
+        $publicReviews = $this->getPublicReviewsByProduct((int) $product_id);
+        $reviewContext = $this->getEligibleReviewOrder((int) $product_id, $request->query('review_order_id'));
+
         $manager_product = view('pages.product_detail')
             ->with('all_product', $all_product)
             ->with('all_product2', $all_product2)
-            ->with('all_product3', $all_product3);
+            ->with('all_product3', $all_product3)
+            ->with('reviewStats', $reviewStats)
+            ->with('publicReviews', $publicReviews)
+            ->with('reviewContext', $reviewContext)
+            ->with('reviewOrderId', $request->query('review_order_id'));
 
         return view('user_layout')->with('pages.product_detail', $manager_product);
     }
@@ -322,5 +396,78 @@ class ProductController extends Controller
             ->get(['product_id', 'product_name', 'product_price', 'product_image']);
 
         return response()->json($products);
+    }
+    //Đánh giá sản phẩm
+    public function danh_gia_san_pham(Request $request)
+    {
+        if (!Auth::check()) {
+            return redirect('/dang-nhap-dang-ky')->with('message', 'Bạn cần đăng nhập để đánh giá sản phẩm');
+        }
+
+        $validated = $request->validate([
+            'order_id' => 'required|integer',
+            'product_id' => 'required|integer',
+            'rating' => 'required|integer|min:1|max:5',
+            'review_content' => 'required|string|min:5|max:1000',
+        ]);
+
+        $reviewContext = $this->getEligibleReviewOrder((int) $validated['product_id'], (int) $validated['order_id']);
+        if (!$reviewContext) {
+            return redirect('/chi-tiet-san-pham/' . $validated['product_id'])
+                ->with('message', 'Chỉ được đánh giá sản phẩm thuộc đơn đã giao và đã thanh toán');
+        }
+
+        if ($reviewContext->existingReview) {
+            return redirect('/chi-tiet-san-pham/' . $validated['product_id'] . '?review_order_id=' . $validated['order_id'] . '#product-reviews')
+                ->with('message', 'Sản phẩm này trong đơn hàng đó đã được đánh giá');
+        }
+
+        DB::table('tbl_reviews')->insert([
+            'order_id' => $validated['order_id'],
+            'product_id' => $validated['product_id'],
+            'user_id' => Auth::id(),
+            'rating' => $validated['rating'],
+            'review_content' => trim($validated['review_content']),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return redirect('/chi-tiet-san-pham/' . $validated['product_id'] . '#product-reviews')
+            ->with('message', 'Đánh giá của bạn đã được gửi thành công');
+    }
+
+    public function all_reviews()
+    {
+        $reviews = DB::table('tbl_reviews')
+            ->join('tbl_product', 'tbl_reviews.product_id', '=', 'tbl_product.product_id')
+            ->join('users', 'tbl_reviews.user_id', '=', 'users.id')
+            ->select(
+                'tbl_reviews.*',
+                'tbl_product.product_name',
+                'tbl_product.product_image',
+                'users.name as user_name',
+                'users.email as user_email'
+            )
+            ->orderByDesc('tbl_reviews.created_at')
+            ->get();
+
+        return view('pages_admin.all_reviews', compact('reviews'));
+    }
+
+    public function reply_review(Request $request, $review_id)
+    {
+        $request->validate([
+            'admin_reply' => 'required|string|min:2|max:2000',
+        ]);
+
+        DB::table('tbl_reviews')
+            ->where('review_id', $review_id)
+            ->update([
+                'admin_reply' => trim($request->admin_reply),
+                'admin_replied_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+        return redirect('/all-reviews')->with('message', 'Đã phản hồi đánh giá thành công');
     }
 }

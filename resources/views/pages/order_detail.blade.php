@@ -111,6 +111,7 @@
                             <th>Số lượng</th>
                             <th>Thành tiền</th>
                             <th>Thanh toán</th>
+                            <th>Đánh giá</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -122,13 +123,22 @@
                                 <td>{{ $item->oder_soluong }}</td>
                                 <td class="fw-bold text-danger">{{ number_format($item->thanh_tien) }}đ</td>
                                 <td>{{ $paymentStatusLabels[$order->payment_status] ?? 'Không xác định' }}</td>
+                                <td>
+                                    @if($item->can_review)
+                                        <a href="{{ $item->review_url }}" class="btn btn-sm btn-outline-success rounded-pill px-3">Đánh giá</a>
+                                    @elseif($item->has_review)
+                                        <span class="badge bg-success">Đã đánh giá</span>
+                                    @else
+                                        <span class="text-muted small">Chỉ đánh giá khi đơn đã giao và đã thanh toán</span>
+                                    @endif
+                                </td>
                             </tr>
                         @endforeach
                     </tbody>
                     <tfoot class="table-light">
                         <tr>
                             <th colspan="4" class="text-end">Tổng đơn hàng</th>
-                            <th colspan="2" class="text-danger fs-5">{{ number_format($order->total) }}đ</th>
+                            <th colspan="3" class="text-danger fs-5">{{ number_format($order->total) }}đ</th>
                         </tr>
                     </tfoot>
                 </table>

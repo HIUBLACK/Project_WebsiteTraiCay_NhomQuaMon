@@ -172,9 +172,11 @@ class OderController extends Controller
             ->where('tbl_oder.order_id', $orderId)
             ->select(
                 'tbl_oder.oder_id',
+                'tbl_oder.oder_id_product as product_id',
                 'tbl_oder.oder_soluong',
                 'tbl_oder.oder_status',
                 'tbl_product.product_name',
+                'tbl_product.product_image',
                 'tbl_product.product_price',
                 DB::raw('(tbl_product.product_price * tbl_oder.oder_soluong) as thanh_tien')
             )
@@ -322,6 +324,23 @@ class OderController extends Controller
         if (!$payload || (int) $payload['order']->user_id !== (int) Auth::id()) {
             return redirect('/lich-su-dat-hang')->with('message', 'Không tìm thấy đơn hàng');
         }
+
+        $existingReviews = DB::table('tbl_reviews')
+            ->where('order_id', $payload['order']->order_id)
+            ->where('user_id', Auth::id())
+            ->pluck('review_id', 'product_id');
+
+        $canReviewOrder = (int) $payload['order']->status === 4 && (int) $payload['order']->payment_status === 1;
+
+        $payload['items'] = $payload['items']->map(function ($item) use ($existingReviews, $payload, $canReviewOrder) {
+            $reviewId = $existingReviews[$item->product_id] ?? null;
+            $item->review_id = $reviewId;
+            $item->has_review = $reviewId !== null;
+            $item->can_review = $canReviewOrder && !$item->has_review;
+            $item->review_url = url('/chi-tiet-san-pham/' . $item->product_id . '?review_order_id=' . $payload['order']->order_id . '#review-form');
+
+            return $item;
+        });
 
         return view('pages.order_detail', $payload);
     }

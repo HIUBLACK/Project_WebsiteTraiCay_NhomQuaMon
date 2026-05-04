@@ -167,3 +167,9 @@ Route::get('/all-statistics-order', 'App\Http\Controllers\AdminController@thong_
 Route::get('/all-statistics-product', 'App\Http\Controllers\AdminController@thong_ke_san_pham');
 Route::get('/all-statistics-customer', 'App\Http\Controllers\AdminController@thong_ke_khach_hang');
 Route::get('/all-statistics-coupon', 'App\Http\Controllers\AdminController@thong_ke_khuyen_mai');
+
+
+//Đánh giá sản phẩm
+Route::post('/danh-gia-san-pham', 'App\Http\Controllers\ProductController@danh_gia_san_pham');
+Route::get('/all-reviews', 'App\Http\Controllers\ProductController@all_reviews');
+Route::post('/reply-review/{review_id}', 'App\Http\Controllers\ProductController@reply_review');

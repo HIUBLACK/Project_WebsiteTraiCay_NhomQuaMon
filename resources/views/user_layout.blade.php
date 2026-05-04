@@ -91,6 +91,163 @@
         object-fit: cover;
         border-radius: 12px;
     }
+    .floating-chat-button {
+        position: fixed;
+        right: 24px;
+        bottom: 92px;
+        width: 62px;
+        height: 62px;
+        border-radius: 50%;
+        border: 0;
+        background: linear-gradient(135deg, #ff6b35, #ff9f1c);
+        color: #fff;
+        box-shadow: 0 18px 40px rgba(255, 107, 53, 0.35);
+        z-index: 1060;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 26px;
+    }
+    .floating-chat-badge {
+        position: absolute;
+        top: -4px;
+        right: -4px;
+        min-width: 22px;
+        height: 22px;
+        border-radius: 999px;
+        background: #dc2626;
+        color: #fff;
+        font-size: 12px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 6px;
+    }
+    .floating-chat-panel {
+        position: fixed;
+        right: 24px;
+        bottom: 166px;
+        width: 360px;
+        max-width: calc(100vw - 24px);
+        background: #fff;
+        border-radius: 24px;
+        overflow: hidden;
+        box-shadow: 0 30px 60px rgba(15, 23, 42, 0.22);
+        z-index: 1060;
+        display: none;
+        border: 1px solid #f1f5f9;
+    }
+    .floating-chat-panel.is-open {
+        display: block;
+    }
+    .floating-chat-header {
+        padding: 16px 18px;
+        color: #fff;
+        background: linear-gradient(135deg, #f97316, #ea580c);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+    .floating-chat-header p,
+    .floating-chat-header h6 {
+        margin: 0;
+    }
+    .floating-chat-body {
+        height: 360px;
+        overflow-y: auto;
+        padding: 16px;
+        background:
+            radial-gradient(circle at top right, rgba(255, 237, 213, 0.85), transparent 36%),
+            linear-gradient(180deg, #fffaf5 0%, #ffffff 100%);
+    }
+    .floating-chat-row {
+        display: flex;
+        margin-bottom: 12px;
+    }
+    .floating-chat-row.is-user {
+        justify-content: flex-end;
+    }
+    .floating-chat-bubble {
+        max-width: 78%;
+        padding: 10px 14px;
+        border-radius: 18px;
+        font-size: 14px;
+        line-height: 1.5;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+    }
+    .floating-chat-row.is-admin .floating-chat-bubble {
+        background: #fff;
+        color: #0f172a;
+        border-bottom-left-radius: 6px;
+    }
+    .floating-chat-row.is-user .floating-chat-bubble {
+        background: linear-gradient(135deg, #f97316, #fb923c);
+        color: #fff;
+        border-bottom-right-radius: 6px;
+    }
+    .floating-chat-meta {
+        display: block;
+        font-size: 11px;
+        opacity: 0.75;
+        margin-top: 6px;
+    }
+    .floating-chat-empty {
+        text-align: center;
+        color: #64748b;
+        font-size: 14px;
+        padding: 56px 16px;
+    }
+    .floating-chat-footer {
+        padding: 14px;
+        border-top: 1px solid #e2e8f0;
+        background: #fff;
+    }
+    .floating-chat-form {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .floating-chat-input {
+        flex: 1;
+        border: 1px solid #cbd5e1;
+        border-radius: 999px;
+        padding: 12px 16px;
+        font-size: 14px;
+        outline: none;
+    }
+    .floating-chat-send {
+        width: 46px;
+        height: 46px;
+        border-radius: 50%;
+        border: 0;
+        background: #f97316;
+        color: #fff;
+        flex-shrink: 0;
+    }
+    .floating-chat-login {
+        display: block;
+        text-align: center;
+        border-radius: 999px;
+        padding: 12px 16px;
+        background: #f97316;
+        color: #fff;
+        text-decoration: none;
+        font-weight: 700;
+    }
+    @media (max-width: 576px) {
+        .floating-chat-button {
+            right: 16px;
+            bottom: 84px;
+        }
+        .floating-chat-panel {
+            right: 16px;
+            left: 16px;
+            width: auto;
+            bottom: 154px;
+        }
+    }
 </style>
 
 <body>
@@ -261,6 +418,45 @@
     @yield('edit_password_user')
     @yield('forgot_password')
     @yield('reset_password')
+
+    <button type="button" class="floating-chat-button" id="floatingChatToggle" aria-label="Nhắn tin với admin">
+        <i class="fab fa-facebook-messenger"></i>
+        @if(($layoutUnreadAdminMessages ?? 0) > 0)
+            <span class="floating-chat-badge" id="floatingChatBadge">{{ $layoutUnreadAdminMessages }}</span>
+        @else
+            <span class="floating-chat-badge" id="floatingChatBadge" style="display:none"></span>
+        @endif
+    </button>
+
+    <div class="floating-chat-panel" id="floatingChatPanel">
+        <div class="floating-chat-header">
+            <div>
+                <h6>Chat với admin</h6>
+                <p>Hỗ trợ nhanh như Messenger</p>
+            </div>
+            <button type="button" class="btn btn-sm btn-light rounded-circle" id="floatingChatClose">
+                <i class="fa fa-times"></i>
+            </button>
+        </div>
+        <div class="floating-chat-body" id="floatingChatBody">
+            @if(Auth::check())
+                <div class="floating-chat-empty">Đang tải hội thoại...</div>
+            @else
+                <div class="floating-chat-empty">Đăng nhập để nhắn tin trực tiếp với admin.</div>
+            @endif
+        </div>
+        <div class="floating-chat-footer">
+            @if(Auth::check())
+                <form class="floating-chat-form" id="floatingChatForm">
+                    @csrf
+                    <input type="text" class="floating-chat-input" id="floatingChatInput" placeholder="Nhập tin nhắn..." maxlength="2000">
+                    <button type="submit" class="floating-chat-send"><i class="fa fa-paper-plane"></i></button>
+                </form>
+            @else
+                <a href="{{ url('/dang-nhap-dang-ky') }}" class="floating-chat-login">Đăng nhập để nhắn tin</a>
+            @endif
+        </div>
+    </div>
     <!-- Footer Start -->
     <div class="container-fluid bg-dark text-white-50 footer pt-5 mt-5">
         <div class="container py-5">
@@ -418,6 +614,125 @@
             });
         });
     </script>
+    @if(Auth::check())
+    <script>
+        (function () {
+            var panel = document.getElementById('floatingChatPanel');
+            var toggle = document.getElementById('floatingChatToggle');
+            var closeButton = document.getElementById('floatingChatClose');
+            var body = document.getElementById('floatingChatBody');
+            var form = document.getElementById('floatingChatForm');
+            var input = document.getElementById('floatingChatInput');
+            var badge = document.getElementById('floatingChatBadge');
+            var pollingTimer = null;
+
+            function escapeHtml(text) {
+                return (text || '').replace(/[&<>"']/g, function (char) {
+                    return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[char];
+                });
+            }
+
+            function setBadge(count) {
+                if (!badge) {
+                    return;
+                }
+                if (count > 0) {
+                    badge.style.display = 'flex';
+                    badge.textContent = count;
+                } else {
+                    badge.style.display = 'none';
+                }
+            }
+
+            function renderMessages(messages) {
+                if (!messages.length) {
+                    body.innerHTML = '<div class="floating-chat-empty">Hãy bắt đầu cuộc trò chuyện với admin.</div>';
+                    return;
+                }
+
+                body.innerHTML = messages.map(function (message) {
+                    var isUser = message.sender_type === 'user';
+                    return '<div class="floating-chat-row ' + (isUser ? 'is-user' : 'is-admin') + '">' +
+                        '<div class="floating-chat-bubble">' +
+                            '<div>' + escapeHtml(message.message_text) + '</div>' +
+                            '<span class="floating-chat-meta">' + escapeHtml(message.created_at) + '</span>' +
+                        '</div>' +
+                    '</div>';
+                }).join('');
+
+                body.scrollTop = body.scrollHeight;
+                setBadge(0);
+            }
+
+            function loadMessages() {
+                fetch('{{ url('/tin-nhan') }}', {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
+                })
+                    .then(function (response) { return response.json(); })
+                    .then(function (data) {
+                        renderMessages(data.messages || []);
+                    })
+                    .catch(function () {
+                        body.innerHTML = '<div class="floating-chat-empty">Không tải được tin nhắn.</div>';
+                    });
+            }
+
+            toggle.addEventListener('click', function () {
+                panel.classList.toggle('is-open');
+                if (panel.classList.contains('is-open')) {
+                    loadMessages();
+                    if (input) {
+                        input.focus();
+                    }
+                }
+            });
+
+            closeButton.addEventListener('click', function () {
+                panel.classList.remove('is-open');
+            });
+
+            form.addEventListener('submit', function (event) {
+                event.preventDefault();
+
+                var message = input.value.trim();
+                if (!message) {
+                    return;
+                }
+
+                fetch('{{ url('/tin-nhan') }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ message_text: message })
+                })
+                    .then(function (response) { return response.json(); })
+                    .then(function (data) {
+                        input.value = '';
+                        renderMessages(data.messages || []);
+                    });
+            });
+
+            pollingTimer = setInterval(function () {
+                if (panel.classList.contains('is-open')) {
+                    loadMessages();
+                }
+            }, 4000);
+
+            window.addEventListener('beforeunload', function () {
+                if (pollingTimer) {
+                    clearInterval(pollingTimer);
+                }
+            });
+        })();
+    </script>
+    @endif
 
 </body>
 

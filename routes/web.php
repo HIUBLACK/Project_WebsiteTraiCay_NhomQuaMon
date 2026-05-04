@@ -173,3 +173,10 @@ Route::get('/all-statistics-coupon', 'App\Http\Controllers\AdminController@thong
 Route::post('/danh-gia-san-pham', 'App\Http\Controllers\ProductController@danh_gia_san_pham');
 Route::get('/all-reviews', 'App\Http\Controllers\ProductController@all_reviews');
 Route::post('/reply-review/{review_id}', 'App\Http\Controllers\ProductController@reply_review');
+
+// Nhắn tin user/admin
+Route::get('/tin-nhan', 'App\Http\Controllers\MessageController@userMessages');
+Route::post('/tin-nhan', 'App\Http\Controllers\MessageController@userSendMessage');
+Route::get('/admin-messages', 'App\Http\Controllers\MessageController@adminMessagesPage');
+Route::get('/admin-messages/{user_id}', 'App\Http\Controllers\MessageController@adminConversation');
+Route::post('/admin-messages/{user_id}', 'App\Http\Controllers\MessageController@adminSendMessage');

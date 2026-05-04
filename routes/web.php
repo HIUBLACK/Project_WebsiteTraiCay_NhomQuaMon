@@ -180,3 +180,8 @@ Route::post('/tin-nhan', 'App\Http\Controllers\MessageController@userSendMessage
 Route::get('/admin-messages', 'App\Http\Controllers\MessageController@adminMessagesPage');
 Route::get('/admin-messages/{user_id}', 'App\Http\Controllers\MessageController@adminConversation');
 Route::post('/admin-messages/{user_id}', 'App\Http\Controllers\MessageController@adminSendMessage');
+
+// AI chatbot tu van san pham
+Route::get('/ai-chatbot', 'App\Http\Controllers\AiChatController@history');
+Route::post('/ai-chatbot', 'App\Http\Controllers\AiChatController@ask');
+Route::post('/ai-chatbot/reset', 'App\Http\Controllers\AiChatController@reset');

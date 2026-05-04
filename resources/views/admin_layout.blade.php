@@ -109,7 +109,8 @@
                         <a class="collapse-item" href="{{URL::to('them-sanpham')}}">Thêm sản phẩm</a>
                     </div>
                 </div>
-            </li> <li class="nav-item">
+            </li>
+            <li class="nav-item">
                 <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapse3"
                     aria-expanded="true" aria-controls="collapse3">
                     <i class="fas fa-fw fa-table"></i>
@@ -152,7 +153,7 @@
                     </div>
                 </div>
             </li>
-             </li>
+
              <li class="nav-item">
                 <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapse6"
                     aria-expanded="true" aria-controls="collapse6">
@@ -171,32 +172,25 @@
                     </div>
                 </div>
             </li>
-              </li>
              <li class="nav-item">
-                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapse5"
-                    aria-expanded="true" aria-controls="collapse5">
+                <a class="nav-link" href="{{URL::to('admin-messages')}}">
+                    <i class="fas fa-fw fa-comments"></i>
+                    <span>Quản lý tin nhắn</span>
+                    @if(($layoutAdminUnreadMessages ?? 0) > 0)
+                        <span class="badge badge-danger ml-2">{{ $layoutAdminUnreadMessages }}</span>
+                    @endif
+                </a>
+            </li>
+             <li class="nav-item">
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapse7"
+                    aria-expanded="true" aria-controls="collapse7   ">
                     <i class="fas fa-fw fa-table"></i>
                     <span>Quản Lý Đánh Giá</span>
                 </a>
-                <div id="collapse5" class="collapse" aria-labelledby="heading1" data-parent="#accordionSidebar">
+                <div id="collapse7" class="collapse" aria-labelledby="heading1" data-parent="#accordionSidebar">
                     <div class="bg-white py-2 collapse-inner rounded">
                         <h6 class="collapse-header">Tùy chỉnh:</h6>
-                        <a class="collapse-item" href="{{URL::to('all-rank-user')}}">Danh sách xếp hạng</a>
-
-                    </div>
-                </div>
-            </li>
-              </li>
-             <li class="nav-item">
-                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapse5"
-                    aria-expanded="true" aria-controls="collapse5">
-                    <i class="fas fa-fw fa-table"></i>
-                    <span>Quản Lý Chat</span>
-                </a>
-                <div id="collapse5" class="collapse" aria-labelledby="heading1" data-parent="#accordionSidebar">
-                    <div class="bg-white py-2 collapse-inner rounded">
-                        <h6 class="collapse-header">Tùy chỉnh:</h6>
-                        <a class="collapse-item" href="{{URL::to('all-rank-user')}}">Danh sách xếp hạng</a>
+                        <a class="collapse-item" href="{{URL::to('all-reviews')}}">Danh sách đánh giá</a>
 
                     </div>
                 </div>
@@ -383,67 +377,33 @@
 
                         <!-- Nav Item - Messages -->
                         <li class="nav-item dropdown no-arrow mx-1">
-                            <a class="nav-link dropdown-toggle" href="#" id="messagesDropdown" role="button"
+                            <a class="nav-link dropdown-toggle" href="{{ URL::to('admin-messages') }}" id="messagesDropdown" role="button"
                                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 <i class="fas fa-envelope fa-fw"></i>
                                 <!-- Counter - Messages -->
-                                <span class="badge badge-danger badge-counter">7</span>
+                                <span class="badge badge-danger badge-counter">{{ $layoutAdminUnreadMessages ?? 0 }}</span>
                             </a>
                             <!-- Dropdown - Messages -->
                             <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in"
                                 aria-labelledby="messagesDropdown">
                                 <h6 class="dropdown-header">
-                                    Message Center
+                                    Tin nhắn khách hàng
                                 </h6>
-                                <a class="dropdown-item d-flex align-items-center" href="#">
-                                    <div class="dropdown-list-image mr-3">
-                                        <img class="rounded-circle" src="img/undraw_profile_1.svg"
-                                            alt="...">
-                                        <div class="status-indicator bg-success"></div>
-                                    </div>
-                                    <div class="font-weight-bold">
-                                        <div class="text-truncate">Hi there! I am wondering if you can help me with a
-                                            problem I've been having.</div>
-                                        <div class="small text-gray-500">Emily Fowler · 58m</div>
-                                    </div>
-                                </a>
-                                <a class="dropdown-item d-flex align-items-center" href="#">
-                                    <div class="dropdown-list-image mr-3">
-                                        <img class="rounded-circle" src="img/undraw_profile_2.svg"
-                                            alt="...">
-                                        <div class="status-indicator"></div>
-                                    </div>
-                                    <div>
-                                        <div class="text-truncate">I have the photos that you ordered last month, how
-                                            would you like them sent to you?</div>
-                                        <div class="small text-gray-500">Jae Chun · 1d</div>
-                                    </div>
-                                </a>
-                                <a class="dropdown-item d-flex align-items-center" href="#">
-                                    <div class="dropdown-list-image mr-3">
-                                        <img class="rounded-circle" src="img/undraw_profile_3.svg"
-                                            alt="...">
-                                        <div class="status-indicator bg-warning"></div>
-                                    </div>
-                                    <div>
-                                        <div class="text-truncate">Last month's report looks great, I am very happy with
-                                            the progress so far, keep up the good work!</div>
-                                        <div class="small text-gray-500">Morgan Alvarez · 2d</div>
-                                    </div>
-                                </a>
-                                <a class="dropdown-item d-flex align-items-center" href="#">
-                                    <div class="dropdown-list-image mr-3">
-                                        <img class="rounded-circle" src="https://source.unsplash.com/Mv9hjnEUHR4/60x60"
-                                            alt="...">
-                                        <div class="status-indicator bg-success"></div>
-                                    </div>
-                                    <div>
-                                        <div class="text-truncate">Am I a good boy? The reason I ask is because someone
-                                            told me that people say this to all dogs, even if they aren't good...</div>
-                                        <div class="small text-gray-500">Chicken the Dog · 2w</div>
-                                    </div>
-                                </a>
-                                <a class="dropdown-item text-center small text-gray-500" href="#">Read More Messages</a>
+                                @forelse(($layoutAdminLatestMessages ?? collect()) as $message)
+                                    <a class="dropdown-item d-flex align-items-center" href="{{ URL::to('admin-messages?user_id=' . $message->id) }}">
+                                        <div class="dropdown-list-image mr-3">
+                                            <img class="rounded-circle" src="{{ asset('backend/images/undraw_profile.svg') }}" alt="...">
+                                            <div class="status-indicator {{ $message->unread_count > 0 ? 'bg-success' : '' }}"></div>
+                                        </div>
+                                        <div class="{{ $message->unread_count > 0 ? 'font-weight-bold' : '' }}">
+                                            <div class="text-truncate">{{ $message->message_text }}</div>
+                                            <div class="small text-gray-500">{{ $message->name }} · {{ \Carbon\Carbon::parse($message->created_at)->diffForHumans() }}</div>
+                                        </div>
+                                    </a>
+                                @empty
+                                    <div class="dropdown-item text-center small text-gray-500">Chưa có hội thoại nào</div>
+                                @endforelse
+                                <a class="dropdown-item text-center small text-gray-500" href="{{ URL::to('admin-messages') }}">Xem tất cả tin nhắn</a>
                             </div>
                         </li>
 
@@ -510,6 +470,8 @@
 @yield('all_statistics_product')
 @yield('all_statistics_customer')
 @yield('all_statistics_coupon')
+@yield('all_reviews')
+@yield('admin_messages')
 
 
 

@@ -46,7 +46,7 @@ class AdminController extends Controller
         $topCustomers = DB::table('users')
             ->select('name', 'email', DB::raw('COALESCE(total_spent, 0) as total_spent'), 'rank', 'created_at')
             ->orderByDesc('total_spent')
-            ->limit(5)
+            ->limit(6)
             ->get();
 
         $couponStats = DB::table('tbl_coupon')
